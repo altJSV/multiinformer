@@ -22,19 +22,22 @@ filter_Children_0_Children_0_Children_0_Children_0["Children"][0]["Value"] = tru
   // непосредственно парсинг JSON. Файл очень большой, памяти занимает много, парсинг занимает немало времени
   DeserializationError error = deserializeJson(hwm, http.getStream(), DeserializationOption::Filter(filter), DeserializationOption::NestingLimit(12));
   */
-  StaticJsonDocument<224> filter;
+  StaticJsonDocument<260> filter;
 
+//1-2 уровни вложенности. Создаем объект содержащий Первые 2 уровня массива 1 уровень всегда равен 0. Его можно игнорировать. 2 - названия компонентов. Из Интересного только только поле Text
 JsonObject filter_Children_0_Children_0 = filter["Children"][0]["Children"].createNestedObject();
-filter_Children_0_Children_0["Value"] = true;
-
+//3 уровень вложенности сами компоненты Интересное Text, Value, Min Max
 JsonObject filter_Children_0_Children_0_Children_0 = filter_Children_0_Children_0["Children"].createNestedObject();
-filter_Children_0_Children_0_Children_0["Value"] = true;
-
+//4 уровень вложенности. Конкретный параметр
+filter_Children_0_Children_0_Children_0["Children"][0]["Value"] = true;
+filter_Children_0_Children_0_Children_0["Children"][1]["Value"] = true;
+filter_Children_0_Children_0_Children_0["Children"][10]["Value"] = true;
 JsonObject filter_Children_0_Children_0_Children_0_Children_0 = filter_Children_0_Children_0_Children_0["Children"].createNestedObject();
-filter_Children_0_Children_0_Children_0_Children_0["Value"] = true;
+//filter_Children_0_Children_0_Children_0_Children_0["Value"] = true;
+//5 уровень вложенности. Уточнение к параметру
 filter_Children_0_Children_0_Children_0_Children_0["Children"][0]["Value"] = true;
 
-DynamicJsonDocument hwm(12288);
+DynamicJsonDocument hwm(6500);
 DeserializationError error = deserializeJson(hwm, http.getStream(), DeserializationOption::Filter(filter), DeserializationOption::NestingLimit(12));
   if (error) {
       String errorStr = error.c_str();
@@ -43,7 +46,7 @@ DeserializationError error = deserializeJson(hwm, http.getStream(), Deserializat
     }
     else
     {
-  
+  Serial.println(hwm.memoryUsage());
    /*структура файла довольно таки большая и сложная, со множеством вложенных списков и ветвлений, но в целом разобраться можно
     ["Children"][0]["Children"][1] - разлчиные параметры процессора
     ["Children"][0]["Children"][3] - видеокарта
