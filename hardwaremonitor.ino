@@ -2,6 +2,9 @@
 
 void hardwareMonitor()
 {
+  ledcWrite(1, 255); //устанавливаем значение подсветки по умолчанию 250
+  ledcWrite(2, 255); //устанавливаем значение подсветки по умолчанию 250
+  ledcWrite(3, 255); //устанавливаем значение подсветки по умолчанию 250
   WiFiClient client;
   HTTPClient http;
   // Отправляем запрос
@@ -11,6 +14,10 @@ void hardwareMonitor()
       int httpCode = http.GET();
       if (httpCode > 0) {
         Serial.println(httpCode);
+        //Зажигаем зеленый светодиод при удачном выполнении запроса
+  ledcWrite(1, 255);
+  ledcWrite(2, 200);
+  ledcWrite(3, 255);
  /*StaticJsonDocument<400> filter;
 JsonObject filter_Children_0_Children_0 = filter["Children"][0]["Children"].createNestedObject();
 //filter_Children_0_Children_0["Text"] = true;
@@ -22,7 +29,7 @@ filter_Children_0_Children_0_Children_0_Children_0["Children"][0]["Value"] = tru
   // непосредственно парсинг JSON. Файл очень большой, памяти занимает много, парсинг занимает немало времени
   DeserializationError error = deserializeJson(hwm, http.getStream(), DeserializationOption::Filter(filter), DeserializationOption::NestingLimit(12));
   */
-  StaticJsonDocument<260> filter;
+  StaticJsonDocument<300> filter;
 
 //1-2 уровни вложенности. Создаем объект содержащий Первые 2 уровня массива 1 уровень всегда равен 0. Его можно игнорировать. 2 - названия компонентов. Из Интересного только только поле Text
 JsonObject filter_Children_0_Children_0 = filter["Children"][0]["Children"].createNestedObject();
@@ -35,17 +42,25 @@ filter_Children_0_Children_0_Children_0["Children"][10]["Value"] = true;
 JsonObject filter_Children_0_Children_0_Children_0_Children_0 = filter_Children_0_Children_0_Children_0["Children"].createNestedObject();
 //filter_Children_0_Children_0_Children_0_Children_0["Value"] = true;
 //5 уровень вложенности. Уточнение к параметру
-filter_Children_0_Children_0_Children_0_Children_0["Children"][0]["Value"] = true;
+//JsonObject extraparams = filter_Children_0_Children_0_Children_0_Children_0["Children"].createNestedObject();
+//extraparams["Value"] = true;
 
-DynamicJsonDocument hwm(6500);
+DynamicJsonDocument hwm(8000);
 DeserializationError error = deserializeJson(hwm, http.getStream(), DeserializationOption::Filter(filter), DeserializationOption::NestingLimit(12));
   if (error) {
       String errorStr = error.c_str();
       Serial.print ("Hardware parsing: ");
       Serial.println(errorStr);
+      //Зажигаем красный светодиод при ошибке
+      ledcWrite(1, 200);
+      ledcWrite(2, 255);
+      ledcWrite(3, 255);
     }
     else
     {
+     ledcWrite(1, 255);
+      ledcWrite(2, 255);
+     ledcWrite(3, 200); 
   Serial.println(hwm.memoryUsage());
    /*структура файла довольно таки большая и сложная, со множеством вложенных списков и ветвлений, но в целом разобраться можно
     ["Children"][0]["Children"][1] - разлчиные параметры процессора
@@ -63,7 +78,7 @@ DeserializationError error = deserializeJson(hwm, http.getStream(), Deserializat
   String freeRAM = hwm["Children"][0]["Children"][2]["Children"][1]["Children"][1]["Value"];
   String gpuRAMused = hwm["Children"][0]["Children"][3]["Children"][5]["Children"][1]["Value"];
   String gpuRAM = hwm["Children"][0]["Children"][3]["Children"][5]["Children"][0]["Value"];
-  String cpuFANpercent= hwm["Children"][0]["Children"][0]["Children"][0]["Children"][3]["Children"][0]["Value"];
+  String cpuPower= hwm["Children"][0]["Children"][1]["Children"][3]["Children"][0]["Value"];
   String gpuFANpercent = hwm["Children"][0]["Children"][3]["Children"][4]["Children"][0]["Value"];
   String uploadSpeed = hwm["Children"][0]["Children"][12]["Children"][2]["Children"][0]["Value"];
   String downloadSpeed = hwm["Children"][0]["Children"][12]["Children"][2]["Children"][1]["Value"];
@@ -73,7 +88,7 @@ DeserializationError error = deserializeJson(hwm, http.getStream(), Deserializat
   int gtotalram=gram+gpuRAM.toInt();
   u_int8_t cpl=cpuLoad.toInt();
   u_int8_t cpt=cpuTempPackage.toInt();
-  u_int8_t cpf=cpuFANpercent.toInt();
+  u_int8_t cpf=map(cpuPower.toInt(),0,200,0,100); //Преобразуем мощность в  еденицы от 1 до 100
   u_int8_t gpl=gpuLoad.toInt();
   u_int8_t gpt=gpuHotSpot.toInt();
   u_int8_t gpf=gpuFANpercent.toInt();
@@ -93,7 +108,7 @@ DeserializationError error = deserializeJson(hwm, http.getStream(), Deserializat
   lv_anim_set_values(&cpu, prev_cpu_temp, cpt);
   lv_anim_start(&cpu);
   prev_cpu_temp=cpt;
-  //вентилятор процессора
+  //Потребляемая мощность процессора
   lv_anim_set_var(&cpu, cpufan_indic);
   lv_anim_set_time(&cpu, 500);
   lv_anim_set_values(&cpu, prev_cpu_fan, cpf);
@@ -121,11 +136,11 @@ DeserializationError error = deserializeJson(hwm, http.getStream(), Deserializat
   gpuLoad=LV_SYMBOL_GPU+gpuLoad;
   cpuTempPackage=LV_SYMBOL_TEMP+cpuTempPackage;
   gpuHotSpot=LV_SYMBOL_TEMP+gpuHotSpot;
-  cpuFANpercent=LV_SYMBOL_FAN+cpuFANpercent;
+  cpuPower=LV_SYMBOL_POWER+cpuPower;
   gpuFANpercent=LV_SYMBOL_FAN+gpuFANpercent;
   lv_label_set_text(cpu_load_label, cpuLoad.c_str());
   lv_label_set_text(cpu_temp_label, cpuTempPackage.c_str());
-  lv_label_set_text(cpu_fan_label, cpuFANpercent.c_str());
+  lv_label_set_text(cpu_fan_label, cpuPower.c_str());
   lv_label_set_text(gpu_load_label, gpuLoad.c_str());
   lv_label_set_text(gpu_temp_label, gpuHotSpot.c_str());
   lv_label_set_text(gpu_fan_label, gpuFANpercent.c_str());
@@ -156,6 +171,10 @@ lv_meter_set_indicator_end_value(gpumeter, gputemp_indic, gpuHotSpot.toInt());*/
   else
     {
     Serial.println("http.GET() == 0");
+    //Зажигаем красный светодиод при ошибке
+      ledcWrite(1, 200);
+      ledcWrite(2, 255);
+      ledcWrite(3, 255);
   }
   http.end();
       

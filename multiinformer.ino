@@ -1,11 +1,12 @@
 
 //Подключаем библиотеки
   #include <lvgl.h> //библиотека пользовательского интерфейса
-  #include <Wire.h> //i2c инетрфейс для тач панели и датчика bme
+  
   #include <FS.h> //Работа с файловой системой
   #include <SPIFFS.h> //файловая система esp32
   #include "SD.h"//работа с sd картой
   #include <SPI.h>//интерфейс взаимодействия с sd картой
+  #include <Wire.h> //i2c инетрфейс для тач панели и датчика bme
   #include "touch.h"//функции для работы с тачскрином
   #include <GyverNTP.h>//синхронизация времени по интернету
   #include <GyverTimer.h>//подключение различных таймеров
@@ -90,9 +91,9 @@
   uint8_t bright_level=250; //яркость подсветки экрана
 
 //управление RGB светодиодами
-    uint8_t red_level=254; //яркость красного
-    uint8_t green_level=255; //яркость зеленого
-    uint8_t blue_level=255; //яркость синего
+    //uint8_t red_level=254; //яркость красного
+    //uint8_t green_level=255; //яркость зеленого
+    //uint8_t blue_level=255; //яркость синего
   
 //Значения различных таймеров
     uint32_t refpcinterval=3000;//Обновление парметров ПК 3 секунды
@@ -117,6 +118,8 @@
   //Погода
   String api_key = "apikey";  //ваш api ключ погоды
   String qLocation = "Gubkin,ru"; //город для погоды
+  int8_t gmt=3; //часовой пояс
+  char * ntpserver="pool.ntp.org";
 
   const char *filename = "/config.txt";  // имя файла конфигурации
 
@@ -217,13 +220,15 @@
     static lv_obj_t * weather_int_slider_label;
     static lv_obj_t * pc_int_slider_label;
     static lv_obj_t * bme_int_slider_label;
+    static lv_obj_t * gmt_slider_label;
 
 
 
 
 //Инициализация аудио библиотеки
+  SPIClass SDSPI(VSPI);
   Audio audio(true, I2S_DAC_CHANNEL_LEFT_EN);
-//Инициализация BME датчика
+  //Инициализация BME датчика
   Adafruit_BME680 bme;
 
 //Инициализации библиотек и переферии
@@ -394,6 +399,29 @@
     ledcWrite(0, bright_level);
     saveconf=true;
   }
+//Обработка изменения значения слайдера часового пояса
+  static void slider_gmt_event_cb(lv_event_t * e)
+  {
+    lv_obj_t * slider = lv_event_get_target(e);
+    lv_label_set_text_fmt(gmt_slider_label, "GMT: %d%", (int8_t)lv_slider_get_value(slider));
+    lv_obj_align_to(gmt_slider_label, slider, LV_ALIGN_CENTER, 0, 0);
+    gmt=(int8_t)lv_slider_get_value(slider);
+    ntp.setGMT(gmt);
+    saveconf=true;
+  }
+//Обработка выбора часового пояса
+
+static void ui_dd_ntp_server_event(lv_event_t * e)
+{
+    lv_obj_t * obj = lv_event_get_target(e);
+    
+        char buf[32];
+        lv_dropdown_get_selected_str(obj, buf, 0);
+        ntpserver=&buf[0];
+        ntp.setHost(ntpserver);
+        saveconf=true;
+    
+}   
 //Обработка изменения значения слайдера интервала обновления пк информера
   static void slider_pcint_event_cb(lv_event_t * e)
   {
@@ -424,30 +452,7 @@
     saveconf=true;
   }
 
-//Обработка изменения значения слайдера яркости красного цвета RGB светодиода
-  static void slider_red_event_cb(lv_event_t * e)
-  {
-    lv_obj_t * slider = lv_event_get_target(e);
-    red_level=255-(int)lv_slider_get_value(slider);
-    ledcWrite(1, red_level);
-    saveconf=true;
-  }
-//Обработка изменения значения слайдера яркости зеленого цвета RGB светодиода
-  static void slider_green_event_cb(lv_event_t * e)
-  {
-    lv_obj_t * slider = lv_event_get_target(e);
-    green_level=255-(int)lv_slider_get_value(slider);
-    ledcWrite(2, green_level);
-    saveconf=true;
-  }
-//Обработка изменения значения слайдера яркости синего цвета RGB светодиода
-  static void slider_blue_event_cb(lv_event_t * e)
-  {
-    lv_obj_t * slider = lv_event_get_target(e);
-    blue_level=255-(int)lv_slider_get_value(slider);
-    ledcWrite(3, blue_level);
-    saveconf=true;
-  }
+
 // Выключатель BME 
   static void bme_switch_event(lv_event_t * e)
   {
@@ -485,27 +490,7 @@
     saveconf=true;
   }
 
-//Функция включения/выключения светодиода
-  static void rgb_switch_event(lv_event_t * e)
-  {
-    lv_event_code_t code = lv_event_get_code(e);
-    lv_obj_t * obj = lv_event_get_target(e);
-    if(code == LV_EVENT_VALUE_CHANGED) {
-        if (!lv_obj_has_state(obj, LV_STATE_CHECKED)) 
-        {
-          ledcWrite(1, 255);
-          ledcWrite(2, 255);
-          ledcWrite(3, 255);
-        }
-        else
-        {
-        ledcWrite(1, red_level);
-        ledcWrite(2, green_level);
-        ledcWrite(3, blue_level);
-        }
-    }
-  saveconf=true;  
-  }
+
 //включение выключение автояркости
   static void autobright_switch_event(lv_event_t * e)
   {
@@ -815,8 +800,39 @@
       }
     }
     
-  }   
-
+  } 
+//Перезагрузка ESP32
+void esp_restart_event(lv_event_t * e)
+{
+    lv_obj_t * obj = lv_event_get_current_target(e);
+    if (lv_msgbox_get_active_btn(obj)==0) ESP.restart();
+}    
+//Кнопка сохранения настроек на Sd карту
+  void sd_settings_save_event(lv_event_t * e)
+    {
+      if(!SD.begin(5,SDSPI)){
+        Serial.println("Card Mount Failed");
+      }
+      else
+      {
+        sdSaveConf(SD, "/confbackup.txt");
+        SD.end();
+      }
+    }
+//Кнопка загрузки настроека с sd карты
+     void sd_settings_load_event(lv_event_t * e)
+    {
+      bool result;
+      lv_obj_t * mbox1;
+      if(!SD.begin(5,SDSPI)){
+        Serial.println("Card Mount Failed");
+      }
+      else
+      {
+        result=sdLoadConf(SD, "/confbackup.txt");
+        SD.end();  
+      }
+    }
 //инициализация LVGL и создание всех объектов
 void lvlg_create()
 {
@@ -930,7 +946,7 @@ void lvlg_create()
     lv_obj_add_style(roomair_bar, &style_indic, LV_PART_INDICATOR);
     lv_obj_set_size(roomair_bar, 230, 20);
     lv_obj_align(roomair_bar, LV_ALIGN_TOP_LEFT, 210, 180); //положение на экране
-    lv_bar_set_range(roomair_bar, 0, 500);
+    lv_bar_set_range(roomair_bar, 0, 50);
 
   roomair = lv_label_create(tab1);
   lv_obj_align(roomair, LV_ALIGN_TOP_LEFT, 210, 160); //положение на экране
@@ -975,7 +991,7 @@ Serial.println("2 screen");
   lv_meter_set_scale_major_ticks(cpumeter, cpuscale, 1, 2, 30, lv_color_hex3(0xeee), 15);
   lv_meter_set_scale_range(cpumeter, cpuscale, 0, 100, 270, 90);
   //Индикаторы
-  cpufan_indic = lv_meter_add_arc(cpumeter, cpuscale, 10, lv_palette_main(LV_PALETTE_YELLOW), -20);
+  cpufan_indic = lv_meter_add_arc(cpumeter, cpuscale, 10, lv_palette_main(LV_PALETTE_ORANGE), -20);
   cpu_indic = lv_meter_add_arc(cpumeter, cpuscale, 10, lv_palette_main(LV_PALETTE_BLUE), -10);
   cputemp_indic = lv_meter_add_arc(cpumeter, cpuscale, 10, lv_palette_main(LV_PALETTE_RED), 0);
   lv_meter_set_indicator_start_value(cpumeter, cpu_indic, 0);
@@ -1270,7 +1286,7 @@ Serial.println("3 screen");
   //lv_obj_add_style(totalcash, &bigtext, 0);
   //lv_obj_add_event_cb(yachart, show_cash_value_cb, LV_EVENT_ALL, NULL);
 //Экран радио вкладка 6  
-Serial.println("radio");
+  Serial.println("radio");
   radio_playing_value_label = lv_label_create(tab6); //номер станции
   //lv_label_set_text(radio_station_num_label, "1/73:"); //сам текст для надписи
   lv_obj_align(radio_playing_value_label, LV_ALIGN_TOP_MID, 0, 0); //положение на экране
@@ -1323,7 +1339,7 @@ Serial.println("radio");
         lv_table_set_cell_value(playlist_table, 0, 1, "Адрес");
         lv_obj_add_event_cb(playlist_table, playlist_table_press_event_cb, LV_EVENT_ALL, NULL);
         lv_obj_add_flag(playlistwin, LV_OBJ_FLAG_HIDDEN);
-Serial.println("radio buttons");
+  Serial.println("radio buttons");
   //кнопки
   lv_obj_t * radio_volmin_btn = lv_imgbtn_create(tab6);
     lv_imgbtn_set_src(radio_volmin_btn, LV_IMGBTN_STATE_RELEASED, NULL, &volmin, NULL);
@@ -1364,26 +1380,31 @@ Serial.println("radio buttons");
     lv_obj_set_size(radio_playlist_btn, 30, 30);
     lv_obj_add_event_cb(radio_playlist_btn, radio_playlist_edit, LV_EVENT_ALL, NULL);
 
-Serial.println("Settings screen");
+  Serial.println("Settings screen");
 //Экран настроек вкладка 7
    //Создаем категории настроек
     set_tabview = lv_tabview_create(tab7, LV_DIR_LEFT, 80);
-        lv_obj_t * settab1 = lv_tabview_add_tab(set_tabview, "Дисплей");
+        lv_obj_t * settab1 = lv_tabview_add_tab(set_tabview, "Основные");
         lv_obj_t * settab2 = lv_tabview_add_tab(set_tabview, "Монитор ПК");
         lv_obj_t * settab3 = lv_tabview_add_tab(set_tabview, "Погода");
-        //lv_obj_t * settab4 = lv_tabview_add_tab(set_tabview, "РСЯ");
-        lv_obj_t * settab5 = lv_tabview_add_tab(set_tabview, "Датчик BME");
+        lv_obj_t * settab4 = lv_tabview_add_tab(set_tabview, "Датчик BME");
+        lv_obj_t * settab5 = lv_tabview_add_tab(set_tabview, "SD карта");
         lv_obj_add_event_cb(set_tabview, change_tab_event, LV_EVENT_ALL, NULL);//смена активной вкладки
-  //1 вкладка настроек Дисплей
-  //Метки и надписи
-    
-  lv_obj_t  * ui_label_changebrightness = lv_label_create(settab1); //создаем объект заголовок
+  //1 вкладка настроек Основные
+  //Настройки дисплея
+  lv_obj_t * settingspanel1 = lv_obj_create(settab1);
+  lv_obj_set_size(settingspanel1, 342,LV_SIZE_CONTENT);
+  lv_obj_t  * ui_label_set_cat_display = lv_label_create(settingspanel1); //создаем объект заголовок
+  lv_label_set_text(ui_label_set_cat_display, "Дисплей"); //сам текст для надписи
+  lv_obj_align(ui_label_set_cat_display, LV_ALIGN_TOP_MID, 0, 0); //положение на экране  
+  
+  lv_obj_t  * ui_label_changebrightness = lv_label_create(settingspanel1); //создаем объект заголовок
   lv_label_set_text(ui_label_changebrightness, "Настройка яркости экрана"); //сам текст для надписи
-  lv_obj_align(ui_label_changebrightness, LV_ALIGN_TOP_LEFT, 0, 0); //положение на экране
+  lv_obj_align(ui_label_changebrightness, LV_ALIGN_TOP_LEFT, 0, 20); //положение на экране
   //выключаетль автояркости
-  lv_obj_t * autobright_switch = lv_switch_create(settab1);
+  lv_obj_t * autobright_switch = lv_switch_create(settingspanel1);
   lv_obj_add_event_cb(autobright_switch, autobright_switch_event, LV_EVENT_ALL, NULL);
-  lv_obj_align(autobright_switch, LV_ALIGN_TOP_RIGHT, 0, 0); //положение на экране
+  lv_obj_align(autobright_switch, LV_ALIGN_TOP_RIGHT, 0, 20); //положение на экране
   lv_obj_set_size(autobright_switch,32,16);
   if (photosensor)
     {
@@ -1394,199 +1415,217 @@ Serial.println("Settings screen");
       lv_obj_clear_state(autobright_switch, LV_STATE_CHECKED);
     }
   //Надпись авторяркости
-  lv_obj_t  * ui_label_autobrightness = lv_label_create(settab1); //создаем объект заголовок
+  lv_obj_t  * ui_label_autobrightness = lv_label_create(settingspanel1); //создаем объект заголовок
   lv_label_set_text(ui_label_autobrightness, "Авто"); //сам текст для надписи
-  lv_obj_align(ui_label_autobrightness, LV_ALIGN_TOP_RIGHT, -36, 0); //положение на экране
+  lv_obj_align(ui_label_autobrightness, LV_ALIGN_TOP_RIGHT, -36, 20); //положение на экране
   //Создаем слайдер изменения яркости
-  lv_obj_t * slider_brightness = lv_slider_create(settab1);
-  lv_obj_align(slider_brightness, LV_ALIGN_TOP_LEFT, 0, 30);
-  lv_obj_set_width(slider_brightness,340);
+  lv_obj_t * slider_brightness = lv_slider_create(settingspanel1);
+  lv_obj_align(slider_brightness, LV_ALIGN_TOP_LEFT, 0, 50);
+  lv_obj_set_width(slider_brightness,310);
   lv_slider_set_range(slider_brightness, 1 , 255);
   lv_slider_set_value(slider_brightness, bright_level, LV_ANIM_OFF);
   lv_obj_add_event_cb(slider_brightness, slider_brightness_event_cb, LV_EVENT_VALUE_CHANGED, NULL);
   
-  slider_label = lv_label_create(settab1);
+  slider_label = lv_label_create(settingspanel1);
   lv_label_set_text_fmt(slider_label, "%d%", (int)lv_slider_get_value(slider_brightness));
   lv_obj_align_to(slider_label, slider_brightness, LV_ALIGN_CENTER, 0, 0);
+
+  //Настройки NTP
+  lv_obj_t * settingspanel2 = lv_obj_create(settab1);
+    lv_obj_set_size(settingspanel2, 346,LV_SIZE_CONTENT);
+    lv_obj_set_pos(settingspanel2, 0, lv_obj_get_height(settingspanel1)+10);
+  lv_obj_t  * ui_label_set_cat_time = lv_label_create(settingspanel2); //создаем объект заголовок
+  lv_label_set_text(ui_label_set_cat_time, "NTP"); //сам текст для надписи
+  lv_obj_align(ui_label_set_cat_time, LV_ALIGN_TOP_MID, 0, 0); //положение на экране
+
+  lv_obj_t  * ui_label_ntp_server = lv_label_create(settingspanel2); //создаем объект заголовок
+  lv_label_set_text(ui_label_ntp_server, "Сервер:"); //сам текст для надписи
+  lv_obj_align(ui_label_ntp_server, LV_ALIGN_TOP_LEFT, 0, 30); //положение на экране 
+
+  lv_obj_t * ui_dd_ntp_server = lv_dropdown_create(settingspanel2);
+    lv_dropdown_set_options(ui_dd_ntp_server, "pool.ntp.org\n"
+                            "ntp.msk-ix.ru\n"
+                            "ntp1.vniiftri.ru\n"
+                            "ntp1.stratum2.ru\n"
+                            "ntp2.stratum2.ru\n"
+                            "ntp.msk-ix.ru");
+    lv_obj_align_to(ui_dd_ntp_server, ui_label_ntp_server, LV_ALIGN_OUT_RIGHT_MID, 5, 0);
+    lv_obj_set_width(ui_dd_ntp_server,250);
+    lv_dropdown_set_selected(ui_dd_ntp_server, lv_dropdown_get_option_index(ui_dd_ntp_server, ntpserver));
+    lv_obj_add_event_cb(ui_dd_ntp_server, ui_dd_ntp_server_event, LV_EVENT_VALUE_CHANGED, NULL);
   
-  //создаем слайдеры RGB
-  lv_obj_t  * ui_label_rgb = lv_label_create(settab1); //создаем объект заголовок
-  lv_label_set_text(ui_label_rgb, "RGB индикатор"); //сам текст для надписи
-  lv_obj_align(ui_label_rgb, LV_ALIGN_TOP_LEFT, 0, 60); //положение на экране
+  lv_obj_t  * ui_label_ntp_gmt = lv_label_create(settingspanel2); //создаем объект заголовок
+  lv_label_set_text(ui_label_ntp_gmt, "Часовой пояс:"); //сам текст для надписи
+  lv_obj_align(ui_label_ntp_gmt, LV_ALIGN_TOP_LEFT, 0, 70); 
 
-  //Выключатель подсветки
-  lv_obj_t * rgb_switch = lv_switch_create(settab1);
-  lv_obj_add_event_cb(rgb_switch, rgb_switch_event, LV_EVENT_ALL, NULL);
-  lv_obj_align(rgb_switch, LV_ALIGN_TOP_RIGHT, 0, 60); //положение на экране
-  if (red_level==255 && green_level==255 && blue_level==255) 
-    {
-      lv_obj_clear_state(rgb_switch, LV_STATE_CHECKED);
-    } 
-    else
-    {
-      lv_obj_add_state(rgb_switch, LV_STATE_CHECKED); 
-    }
-  lv_obj_set_size(rgb_switch,32,16);
+  lv_obj_t * slider_gmt = lv_slider_create(settingspanel2);
+  lv_obj_align(slider_gmt, LV_ALIGN_TOP_LEFT, 0, 100);
+  lv_obj_set_width(slider_gmt,310);
+  lv_slider_set_range(slider_gmt, -12 , 14);
+  lv_slider_set_value(slider_gmt, gmt, LV_ANIM_OFF);
+  lv_obj_add_event_cb(slider_gmt, slider_gmt_event_cb, LV_EVENT_VALUE_CHANGED, NULL);
 
-  //Создаем слайдер изменения яркости красного цвета
-  lv_obj_t * slider_red = lv_slider_create(settab1);
-  lv_obj_align(slider_red, LV_ALIGN_TOP_LEFT, 0, 90);
-  lv_obj_set_width(slider_red,340);
-  lv_slider_set_range(slider_red, 0 , 255);
-  lv_slider_set_value(slider_red, 255-red_level, LV_ANIM_OFF);
-  lv_obj_add_event_cb(slider_red, slider_red_event_cb, LV_EVENT_VALUE_CHANGED, NULL);
-  lv_obj_set_style_bg_color(slider_red, lv_color_hex(0xFA0000),  LV_PART_KNOB);
-  lv_obj_set_style_bg_color(slider_red, lv_color_hex(0xFA0000), LV_PART_MAIN);
-  lv_obj_set_style_bg_color(slider_red, lv_color_hex(0xFA0000), LV_PART_INDICATOR);
-
-  //Создаем слайдер изменения яркости зеленого цвета
-  lv_obj_t * slider_green = lv_slider_create(settab1);
-  lv_obj_align(slider_green, LV_ALIGN_TOP_LEFT, 0, 120);
-  lv_obj_set_width(slider_green,340);
-  lv_slider_set_range(slider_green, 0 , 255);
-  lv_slider_set_value(slider_green, 255-green_level, LV_ANIM_OFF);
-  lv_obj_add_event_cb(slider_green, slider_green_event_cb, LV_EVENT_VALUE_CHANGED, NULL);
-  lv_obj_set_style_bg_color(slider_green, lv_color_hex(0x00FA00), LV_PART_MAIN);
-  lv_obj_set_style_bg_color(slider_green, lv_color_hex(0x00FA00), LV_PART_KNOB);
-  lv_obj_set_style_bg_color(slider_green, lv_color_hex(0x00FA00), LV_PART_INDICATOR);
-
-  //Создаем слайдер изменения яркости синего цвета
-  lv_obj_t * slider_blue = lv_slider_create(settab1);
-  lv_obj_align(slider_blue, LV_ALIGN_TOP_LEFT, 0, 150);
-  lv_obj_set_width(slider_blue,340);
-  lv_slider_set_range(slider_blue, 0 , 255);
-  lv_slider_set_value(slider_blue, 255-blue_level, LV_ANIM_OFF);
-  lv_obj_add_event_cb(slider_blue, slider_blue_event_cb, LV_EVENT_VALUE_CHANGED, NULL);
-  lv_obj_set_style_bg_color(slider_blue, lv_color_hex(0x0000FA), LV_PART_MAIN);
-  lv_obj_set_style_bg_color(slider_blue, lv_color_hex(0x0000FA), LV_PART_KNOB);
-  lv_obj_set_style_bg_color(slider_blue, lv_color_hex(0x0000FA), LV_PART_INDICATOR);
-
+  gmt_slider_label = lv_label_create(settingspanel2);
+  lv_label_set_text_fmt(gmt_slider_label, "GMT: %d", (int)lv_slider_get_value(slider_gmt));
+  lv_obj_align_to(gmt_slider_label, slider_gmt, LV_ALIGN_CENTER, 0, 0);
+  
   //2 вкладка настроек ПК монитор
- lv_obj_t  * ui_label_pc_server = lv_label_create(settab2); //создаем объект заголовок
+ lv_obj_t * pc_settingspanel1 = lv_obj_create(settab2);
+  lv_obj_set_size(pc_settingspanel1, 342,LV_SIZE_CONTENT);
+ 
+ lv_obj_t  * ui_label_pc_server = lv_label_create(pc_settingspanel1); //создаем объект заголовок
   lv_label_set_text(ui_label_pc_server, "Адрес сервера:"); //сам текст для надписи
   lv_obj_align(ui_label_pc_server , LV_ALIGN_TOP_LEFT, 0, 0); //положение на экране
  
- pc_ta = lv_textarea_create(settab2);
+ pc_ta = lv_textarea_create(pc_settingspanel1);
     lv_textarea_set_one_line(pc_ta, true);
     lv_obj_align(pc_ta, LV_ALIGN_TOP_LEFT, 0, 20);
-     lv_obj_set_width(pc_ta,340);
+     lv_obj_set_width(pc_ta,310);
      lv_textarea_set_text(pc_ta, pc_server_path.c_str());
      lv_obj_add_event_cb(pc_ta, ta_event_cb, LV_EVENT_ALL, kb);
      lv_obj_add_event_cb(pc_ta, pc_ta_event_cb, LV_EVENT_READY, NULL);
 
- lv_obj_t  * ui_label_pc_interval = lv_label_create(settab2); //создаем объект заголовок
+ lv_obj_t  * ui_label_pc_interval = lv_label_create(pc_settingspanel1); //создаем объект заголовок
   lv_label_set_text(ui_label_pc_interval, "Интервал обновления (секунды):"); //сам текст для надписи
   lv_obj_align(ui_label_pc_interval , LV_ALIGN_TOP_LEFT, 0, 70); //положение на экране
   
   //Создаем слайдер изменения обновления
-  lv_obj_t * slider_pc_int = lv_slider_create(settab2);
+  lv_obj_t * slider_pc_int = lv_slider_create(pc_settingspanel1);
   lv_obj_align(slider_pc_int, LV_ALIGN_TOP_LEFT, 0, 100);
-  lv_obj_set_width(slider_pc_int,340);
+  lv_obj_set_width(slider_pc_int,310);
   lv_slider_set_range(slider_pc_int, 1 , 60);
   lv_slider_set_value(slider_pc_int, refpcinterval/1000, LV_ANIM_OFF);
   lv_obj_add_event_cb(slider_pc_int, slider_pcint_event_cb, LV_EVENT_VALUE_CHANGED, NULL);
   
-  pc_int_slider_label = lv_label_create(settab2);
+  pc_int_slider_label = lv_label_create(pc_settingspanel1);
   lv_label_set_text_fmt(pc_int_slider_label, "%d%", (int)lv_slider_get_value(slider_pc_int));
    lv_obj_align_to(pc_int_slider_label, slider_pc_int, LV_ALIGN_CENTER, 0, 0);
 
   //3 вкладка настроек Погода
-  lv_obj_t  * ui_label_weather_api = lv_label_create(settab3); //создаем объект заголовок
+  lv_obj_t * wt_settingspanel1 = lv_obj_create(settab3);
+  lv_obj_set_size(wt_settingspanel1, 342,LV_SIZE_CONTENT);
+  
+  lv_obj_t  * ui_label_weather_api = lv_label_create(wt_settingspanel1); //создаем объект заголовок
   lv_label_set_text(ui_label_weather_api, "OpenWeatherMap API ключ:"); //сам текст для надписи
   lv_obj_align(ui_label_weather_api , LV_ALIGN_TOP_LEFT, 0, 0); //положение на экране
  
- wt_ta = lv_textarea_create(settab3);
+ wt_ta = lv_textarea_create(wt_settingspanel1);
     lv_textarea_set_one_line(wt_ta, true);
     lv_obj_align(wt_ta, LV_ALIGN_TOP_LEFT, 0, 20);
-     lv_obj_set_width(wt_ta,340);
+     lv_obj_set_width(wt_ta,310);
      lv_textarea_set_text(wt_ta, api_key.c_str());
      lv_obj_add_event_cb(wt_ta, ta_event_cb, LV_EVENT_ALL, kb);
      lv_obj_add_event_cb(wt_ta, wt_ta_event_cb, LV_EVENT_READY, NULL);
 
- lv_obj_t  * ui_label_weather_qLocation = lv_label_create(settab3); //создаем объект заголовок
+ lv_obj_t  * ui_label_weather_qLocation = lv_label_create(wt_settingspanel1); //создаем объект заголовок
   lv_label_set_text(ui_label_weather_qLocation, "Местоположение:"); //сам текст для надписи
   lv_obj_align(ui_label_weather_qLocation , LV_ALIGN_TOP_LEFT, 0, 70); //положение на экране
  
- wtl_ta = lv_textarea_create(settab3);
+ wtl_ta = lv_textarea_create(wt_settingspanel1);
     lv_textarea_set_one_line(wtl_ta, true);
     lv_obj_align(wtl_ta, LV_ALIGN_TOP_LEFT, 0, 90);
-     lv_obj_set_width(wtl_ta,340);
+     lv_obj_set_width(wtl_ta,310);
      lv_textarea_set_text(wtl_ta, qLocation.c_str());
      lv_obj_add_event_cb(wtl_ta, ta_event_cb, LV_EVENT_ALL, kb);
      lv_obj_add_event_cb(wtl_ta, wtl_ta_event_cb, LV_EVENT_READY, NULL);    
 
 
- lv_obj_t  * ui_label_weather_interval = lv_label_create(settab3); //создаем объект заголовок
+ lv_obj_t  * ui_label_weather_interval = lv_label_create(wt_settingspanel1); //создаем объект заголовок
   lv_label_set_text(ui_label_weather_interval, "Интервал обновления (секунды):"); //сам текст для надписи
   lv_obj_align(ui_label_weather_interval , LV_ALIGN_TOP_LEFT, 0, 140); //положение на экране
   //Создаем слайдер изменения обновления
-  lv_obj_t * slider_weather_int = lv_slider_create(settab3);
+  lv_obj_t * slider_weather_int = lv_slider_create(wt_settingspanel1);
   lv_obj_align(slider_weather_int, LV_ALIGN_TOP_LEFT, 0, 170);
-  lv_obj_set_width(slider_weather_int,340);
+  lv_obj_set_width(slider_weather_int,310);
   lv_slider_set_range(slider_weather_int, 1 , 600);
   lv_slider_set_value(slider_weather_int, refweatherinterval/1000, LV_ANIM_OFF);
   lv_obj_add_event_cb(slider_weather_int, slider_weatherint_event_cb, LV_EVENT_VALUE_CHANGED, NULL);
   
-  weather_int_slider_label = lv_label_create(settab3);
+  weather_int_slider_label = lv_label_create(wt_settingspanel1);
   lv_label_set_text_fmt(weather_int_slider_label, "%d%", (int)lv_slider_get_value(slider_weather_int));
   lv_obj_align_to(weather_int_slider_label, slider_weather_int, LV_ALIGN_CENTER, 0, 0);
 
   
-  /*4 вкладка настроек Яндекс
-  lv_obj_t  * ui_label_yandex_api = lv_label_create(settab4); //создаем объект заголовок
-  lv_label_set_text(ui_label_yandex_api, "РСЯ API ключ:"); //сам текст для надписи
-  lv_obj_align(ui_label_yandex_api , LV_ALIGN_TOP_LEFT, 0, 0); //положение на экране
- 
-  ya_ta = lv_textarea_create(settab4);
-    lv_textarea_set_one_line(ya_ta, true);
-    lv_obj_align(ya_ta, LV_ALIGN_TOP_LEFT, 0, 20);
-     lv_obj_set_width(ya_ta,340);
-     lv_textarea_set_text(ya_ta, token.c_str());
-     lv_obj_add_event_cb(ya_ta, ta_event_cb, LV_EVENT_ALL, kb);
-     lv_obj_add_event_cb(ya_ta, ya_ta_event_cb, LV_EVENT_READY, NULL);
   
- lv_obj_t  * ui_label_yandex_interval = lv_label_create(settab4); //создаем объект заголовок
-  lv_label_set_text(ui_label_yandex_interval, "Интервал обновления (секунды):"); //сам текст для надписи
-  lv_obj_align(ui_label_yandex_interval , LV_ALIGN_TOP_LEFT, 0, 70); //положение на экране
-  //Создаем слайдер изменения обновления
-  lv_obj_t * slider_yandex_int = lv_slider_create(settab4);
-  lv_obj_align(slider_yandex_int, LV_ALIGN_TOP_LEFT, 0, 100);
-  lv_obj_set_width(slider_yandex_int,340);
-  lv_slider_set_range(slider_yandex_int, 1 , 600);
-  lv_slider_set_value(slider_yandex_int, refyandexinterval/1000, LV_ANIM_OFF);
-  lv_obj_add_event_cb(slider_yandex_int, slider_pcint_event_cb, LV_EVENT_VALUE_CHANGED, NULL);
-  
-  yandex_int_slider_label = lv_label_create(settab4);
-  lv_label_set_text_fmt(yandex_int_slider_label,"%d%", (int)lv_slider_get_value(slider_yandex_int));
-  lv_obj_align_to(yandex_int_slider_label, slider_yandex_int, LV_ALIGN_CENTER, 0, 0);
-*/
-  //5 вкладка настроек. Датчик BME 
-    lv_obj_t  * ui_label_bme_use = lv_label_create(settab5); //создаем объект заголовок
+  //4 вкладка настроек. Датчик BME 
+    lv_obj_t * bme_settingspanel1 = lv_obj_create(settab4);
+    lv_obj_set_size(bme_settingspanel1, 342,LV_SIZE_CONTENT);
+    
+    lv_obj_t  * ui_label_bme_use = lv_label_create(bme_settingspanel1); //создаем объект заголовок
     lv_label_set_text(ui_label_bme_use, "Использовать датчик температуры"); //сам текст для надписи
     lv_obj_align(ui_label_bme_use , LV_ALIGN_TOP_LEFT, 0, 0); //положение на экране
 
     //Выключатель датчика
-    lv_obj_t * bme_switch = lv_switch_create(settab5);
+    lv_obj_t * bme_switch = lv_switch_create(bme_settingspanel1);
     lv_obj_add_event_cb(bme_switch, bme_switch_event, LV_EVENT_VALUE_CHANGED, NULL);
     lv_obj_align(bme_switch, LV_ALIGN_TOP_RIGHT, 0, 5); //положение на экране
     if (usesensor)  lv_obj_add_state(bme_switch, LV_STATE_CHECKED);
     lv_obj_set_size(bme_switch,32,16);
     //Интервал обновления
-    lv_obj_t  * ui_label_bme_interval = lv_label_create(settab5); //создаем объект заголовок
+    lv_obj_t  * ui_label_bme_interval = lv_label_create(bme_settingspanel1); //создаем объект заголовок
     lv_label_set_text(ui_label_bme_interval, "Интервал обновления (секунды):"); //сам текст для надписи
     lv_obj_align(ui_label_bme_interval , LV_ALIGN_TOP_LEFT, 0, 30); //положение на экране
     //Создаем слайдер изменения обновления
-    lv_obj_t * slider_bme_int = lv_slider_create(settab5);
+    lv_obj_t * slider_bme_int = lv_slider_create(bme_settingspanel1);
     lv_obj_align(slider_bme_int, LV_ALIGN_TOP_LEFT, 0, 60);
-    lv_obj_set_width(slider_bme_int,340);
+    lv_obj_set_width(slider_bme_int,310);
     lv_slider_set_range(slider_bme_int, 1 , 60);
     lv_slider_set_value(slider_bme_int, refsensorinterval/1000, LV_ANIM_OFF);
     lv_obj_add_event_cb(slider_bme_int, slider_bmeint_event_cb, LV_EVENT_VALUE_CHANGED, NULL);
   
-    bme_int_slider_label = lv_label_create(settab5);
+    bme_int_slider_label = lv_label_create(bme_settingspanel1);
     lv_label_set_text_fmt(bme_int_slider_label, "%d%", (int)lv_slider_get_value(slider_bme_int));
     lv_obj_align_to(bme_int_slider_label, slider_bme_int, LV_ALIGN_CENTER, 0, 0);
 
+  //5 вкладка настроек sd карта
+    lv_obj_t * sd_settingspanel1 = lv_obj_create(settab5);
+    lv_obj_set_size(sd_settingspanel1, 342,LV_SIZE_CONTENT);
+    //Заголовок панели
+    lv_obj_t  * ui_label_set_cat_sdsave = lv_label_create(sd_settingspanel1); //создаем объект заголовок
+    lv_label_set_text(ui_label_set_cat_sdsave , "Сохранение/загрузка настроек с SD карты"); //сам текст для надписи
+    lv_obj_align(ui_label_set_cat_sdsave , LV_ALIGN_TOP_MID, 0, 0); //положение на экране
+    
+    //Кнопки
+    //Кнопка сохранения
+    lv_obj_t * ui_button_set_sdsave = lv_btn_create(sd_settingspanel1);
+    lv_obj_add_event_cb(ui_button_set_sdsave, sd_settings_save_event, LV_EVENT_CLICKED, NULL);
+    lv_obj_align(ui_button_set_sdsave , LV_ALIGN_TOP_MID, 0, 40);
+    lv_obj_t * ui_button_label_set_sdsave = lv_label_create(ui_button_set_sdsave);
+    lv_label_set_text(ui_button_label_set_sdsave, "Сохранить");
+    lv_obj_center(ui_button_label_set_sdsave);  
+
+    //кнопка загрузки
+    //Кнопка загрузки настроек
+    lv_obj_t * ui_button_set_sdload = lv_btn_create(sd_settingspanel1);
+    lv_obj_add_event_cb(ui_button_set_sdload, sd_settings_load_event, LV_EVENT_CLICKED, NULL);
+    lv_obj_align(ui_button_set_sdload , LV_ALIGN_TOP_MID, 0, 90);
+    lv_obj_t * ui_button_label_set_sdload = lv_label_create(ui_button_set_sdload);
+    lv_label_set_text(ui_button_label_set_sdload, "Загрузить");
+    lv_obj_center(ui_button_label_set_sdload);     
+    
+    //Панель сохранения плейлиста на sd карту
+    lv_obj_t * sd_settingspanel2 = lv_obj_create(settab5);
+    lv_obj_set_size(sd_settingspanel2, 342,LV_SIZE_CONTENT);
+    lv_obj_set_pos(sd_settingspanel2, 0, 170);
+    //Заголовок панели
+    lv_obj_t  * ui_label_set_cat_playlist_save = lv_label_create(sd_settingspanel2); //создаем объект заголовок
+    lv_label_set_text(ui_label_set_cat_playlist_save , "Сохранение плейлиста на SD карту"); //сам текст для надписи
+    lv_obj_align(ui_label_set_cat_playlist_save , LV_ALIGN_TOP_MID, 0, 0); //положение на экране
+    //Кнопки
+    lv_obj_t * ui_button_set_playlistsave = lv_btn_create(sd_settingspanel2);
+    //lv_obj_add_event_cb(ui_button_set_playlistsave, event_handler, LV_EVENT_CLICKED, NULL);
+    lv_obj_align(ui_button_set_playlistsave , LV_ALIGN_TOP_MID, 0, 40);
+    lv_obj_t * ui_button_label_set_playlistsave = lv_label_create(ui_button_set_playlistsave);
+    lv_label_set_text(ui_button_label_set_playlistsave, "Сохранить");
+    lv_obj_center(ui_button_label_set_playlistsave);
+
+    lv_obj_t * ui_button_set_playlistload = lv_btn_create(sd_settingspanel2);
+    //lv_obj_add_event_cb(ui_button_set_playlistload, event_handler, LV_EVENT_CLICKED, NULL);
+    lv_obj_align(ui_button_set_playlistload , LV_ALIGN_TOP_MID, 0, 90);
+    lv_obj_t * ui_button_label_set_playlistload = lv_label_create(ui_button_set_playlistload);
+    lv_label_set_text(ui_button_label_set_playlistload, "Загрузить");
+    lv_obj_center(ui_button_label_set_playlistload);
+    
 }
 
 
@@ -1595,14 +1634,11 @@ void setup()
   Serial.begin( 115200 ); //открытие серийного порта
       touch_init(); //иницилизация тача 
       lv_init();//инициализация LVGL
-
-  //Инициализация SD карты  
-sd_init();   
   
   //инициализация дисплея в библиотеке TFT_ESPi и изменение его ориентации на альбомную
       tft.begin();          
       tft.setRotation(1);
-
+ 
   //Инициализация файловой системы
   if(!SPIFFS.begin(FORMAT_SPIFFS_IF_FAILED)){
         Serial.println("SPIFFS Mount Failed");
@@ -1620,25 +1656,51 @@ sd_init();
         Serial.println("SPIFFS ready!");
         Serial.println("Reading config file...");
         loadConfiguration(filename);
-        }
-  if (sd_init())
-    {
-      File file = SPIFFS.open("/config.txt");
-      if(!file){
-        Serial.println("Failed to open file");
-        }
-      File file2 = SD.open("/config.txt", FILE_WRITE);
-      if(!file2){
-        Serial.println("Failed to open sdfile");
-        }
-      while( file.available() ) 
-      {
-      file2.write( file.read() );
+        }  
+
+ // Инициализация SD карты
+      pinMode(5, OUTPUT);
+      digitalWrite(5, HIGH);
+      SDSPI.begin(18, 19, 23); // SDSPI.begin(SCLK, MISO, MOSI);
+      SDSPI.setFrequency(1000000);
+      if(!SD.begin(5,SDSPI)){
+        Serial.println("Card Mount Failed");
       }
-      file.close();
-      file2.close();
-      SD.end();
-    } 
+      else
+      {
+      uint8_t cardType = SD.cardType();
+
+    if(cardType == CARD_NONE){
+        Serial.println("No SD card attached");
+        return;
+    }
+
+    Serial.print("SD Card Type: ");
+    if(cardType == CARD_MMC){
+        Serial.println("MMC");
+    } else if(cardType == CARD_SD){
+        Serial.println("SDSC");
+    } else if(cardType == CARD_SDHC){
+        Serial.println("SDHC");
+    } else {
+        Serial.println("UNKNOWN");
+    }
+
+    uint64_t cardSize = SD.cardSize() / (1024 * 1024);
+    Serial.printf("SD Card Size: %lluMB\n", cardSize);
+
+   
+  //createDir(SD, "/mydir");
+  listDir(SD, "/", 0);
+  //writeFile(SD, "/hello.txt", "Hello ");
+  //appendFile(SD, "/hello.txt", "World!\n");
+  //readFile(SD, "/hello.txt");
+  //testFileIO(SD, "/test.txt");
+  //sdSaveConf(SD, "/confbackup.txt");
+  SD.end();
+      }        
+      
+     
 
   //выводим интерфейс LVGL на экран        
       Serial.println("lvgl start");
@@ -1665,9 +1727,11 @@ uint8_t tries=10;
 bool ntpstart=false;
  while (tries>0 && ntpstart==0)
  {
+ntp.setGMT(gmt);
 bool ntpstart=ntp.begin();
 tries--;
  }
+ //ntp.setHost(ntpserver);
 Serial.println("calendar start");
 //Устанавливаем календарям актуальные данные
 set_calendars_date();
@@ -1702,11 +1766,13 @@ Serial.println("rgb start");
   ledcAttachPin(RED_PIN, 1); //подключаем пин красного к каналу 1
   ledcAttachPin(GREEN_PIN, 2); //подключаем пин зеленого к каналу 2
   ledcAttachPin(BLUE_PIN, 3); //подключаем пин синего к каналу 3
-  ledcWrite(1, red_level); //устанавливаем значение подсветки по умолчанию 250
-  ledcWrite(2, green_level); //устанавливаем значение подсветки по умолчанию 250
-  ledcWrite(3, blue_level); //устанавливаем значение подсветки по умолчанию 250
+  ledcWrite(1, 255); //устанавливаем значение подсветки по умолчанию 250
+  ledcWrite(2, 255); //устанавливаем значение подсветки по умолчанию 250
+  ledcWrite(3, 255); //устанавливаем значение подсветки по умолчанию 250
 
 //датчик температуры
+  if  (usesensor)
+  {
   Serial.println("i2c start");
   Wire.begin(21,22);
   bool status = bme.begin(0x77, &Wire);  
@@ -1720,6 +1786,7 @@ Serial.println("rgb start");
     bme.setPressureOversampling(BME680_OS_4X);
     bme.setIIRFilterSize(BME680_FILTER_SIZE_3);
     bme.setGasHeater(320, 150); // 320*C for 150 ms
+  }
 Serial.println("photo start");  
 // настройка фоторезистора
   pinMode(PHOTO_PIN, ANALOG);
@@ -1729,13 +1796,13 @@ Serial.println("photo start");
 
 
 //Установка актуальной даты на календаре
-void set_calendars_date()
-{
+  void set_calendars_date()
+  {
   ntp.updateNow();
   lv_calendar_set_today_date(calendar, ntp.year(), ntp.month(), ntp.day());
   lv_calendar_set_showed_date(calendar, ntp.year(), ntp.month());
   lastday=ntp.day(); //присваиваем переменной lastday значение текущего дня
-    static lv_calendar_date_t highlighted_days[47]; //массив дат праздников
+    static lv_calendar_date_t highlighted_days[49]; //массив дат праздников
 
     //Новый год
     highlighted_days[0].year = ntp.year();
@@ -1817,10 +1884,11 @@ void set_calendars_date()
     highlighted_days[16].month = 03;
     highlighted_days[16].day = 25;
     
-    //День местного самоуправления
+    //Национальный день донора
     highlighted_days[17].year = ntp.year();
     highlighted_days[17].month = 04;
-    highlighted_days[17].day = 21;
+    highlighted_days[17].day = 22;
+    
 
     //День памяти о радиационных авариях и катастрофах
     highlighted_days[18].year = ntp.year();
@@ -1842,133 +1910,143 @@ void set_calendars_date()
     highlighted_days[21].month = 05;
     highlighted_days[21].day = 28;
     
-    //День русского языка
+    //День защиты детей
     highlighted_days[22].year = ntp.year();
     highlighted_days[22].month = 06;
-    highlighted_days[22].day = 6;
+    highlighted_days[22].day = 1;
 
-    //День социальных работников
+    //День русского языка
     highlighted_days[23].year = ntp.year();
     highlighted_days[23].month = 06;
-    highlighted_days[23].day = 8;
-    
-    //День России
+    highlighted_days[23].day = 6;
+
+    //День социальных работников
     highlighted_days[24].year = ntp.year();
     highlighted_days[24].month = 06;
-    highlighted_days[24].day = 12;
+    highlighted_days[24].day = 8;
     
-    //Июньское солнцестояние
+    //День России
     highlighted_days[25].year = ntp.year();
     highlighted_days[25].month = 06;
-    highlighted_days[25].day = 21;
+    highlighted_days[25].day = 12;
+
+    //Всемирный день Донора
+    highlighted_days[26].year = ntp.year();
+    highlighted_days[26].month = 06;
+    highlighted_days[26].day = 12;
+    
+    //Июньское солнцестояние
+    highlighted_days[27].year = ntp.year();
+    highlighted_days[27].month = 06;
+    highlighted_days[27].day = 21;
     
     //День военно-морского флота
-    highlighted_days[26].year = ntp.year();
-    highlighted_days[26].month = 07;
-    highlighted_days[26].day = 30;
+    highlighted_days[28].year = ntp.year();
+    highlighted_days[28].month = 07;
+    highlighted_days[28].day = 30;
 
     //День ВДВ
-    highlighted_days[27].year = ntp.year();
-    highlighted_days[27].month = 8;
-    highlighted_days[27].day = 2;
-
-    //День железнодорожника
-    highlighted_days[28].year = ntp.year();
-    highlighted_days[28].month = 8;
-    highlighted_days[28].day = 25;
-    
-    //День ВВС
     highlighted_days[29].year = ntp.year();
     highlighted_days[29].month = 8;
-    highlighted_days[29].day = 12;
+    highlighted_days[29].day = 2;
 
-    //День Государственного флага
+    //День железнодорожника
     highlighted_days[30].year = ntp.year();
     highlighted_days[30].month = 8;
-    highlighted_days[30].day = 22;
-
-    //День фильмов и кино
+    highlighted_days[30].day = 25;
+    
+    //День ВВС
     highlighted_days[31].year = ntp.year();
     highlighted_days[31].month = 8;
-    highlighted_days[31].day = 27;
+    highlighted_days[31].day = 12;
+
+    //День Государственного флага
+    highlighted_days[32].year = ntp.year();
+    highlighted_days[32].month = 8;
+    highlighted_days[32].day = 22;
+
+    //День фильмов и кино
+    highlighted_days[33].year = ntp.year();
+    highlighted_days[33].month = 8;
+    highlighted_days[33].day = 27;
     
     //День знаний
-    highlighted_days[32].year = ntp.year();
-    highlighted_days[32].month = 9;
-    highlighted_days[32].day = 1;
-
-    //Сентябрьское равноденствие
-    highlighted_days[33].year = ntp.year();
-    highlighted_days[33].month = 9;
-    highlighted_days[33].day = 23;
-    
-    //День машиностроителя
     highlighted_days[34].year = ntp.year();
     highlighted_days[34].month = 9;
-    highlighted_days[34].day = 29;
+    highlighted_days[34].day = 1;
+
+    //Сентябрьское равноденствие
+    highlighted_days[35].year = ntp.year();
+    highlighted_days[35].month = 9;
+    highlighted_days[35].day = 23;
+    
+    //День машиностроителя
+    highlighted_days[36].year = ntp.year();
+    highlighted_days[36].month = 9;
+    highlighted_days[36].day = 29;
     
     //День воздушно-космической обороны России
-    highlighted_days[35].year = ntp.year();
-    highlighted_days[35].month = 10;
-    highlighted_days[35].day = 4;
-    
-    //День спецназа
-    highlighted_days[36].year = ntp.year();
-    highlighted_days[36].month = 10;
-    highlighted_days[36].day = 24;
-
-    //День таможенника
     highlighted_days[37].year = ntp.year();
     highlighted_days[37].month = 10;
-    highlighted_days[37].day = 25;
+    highlighted_days[37].day = 4;
+    
+    //День спецназа
+    highlighted_days[38].year = ntp.year();
+    highlighted_days[38].month = 10;
+    highlighted_days[38].day = 24;
+
+    //День таможенника
+    highlighted_days[39].year = ntp.year();
+    highlighted_days[39].month = 10;
+    highlighted_days[39].day = 25;
 
     //День народного единства
-    highlighted_days[38].year = ntp.year();
-    highlighted_days[38].month = 11;
-    highlighted_days[38].day = 4;
-    
-    //День полиции
-    highlighted_days[39].year = ntp.year();
-    highlighted_days[39].month = 11;
-    highlighted_days[39].day = 10;
-
-    //День ракетных войск и артиллерии
     highlighted_days[40].year = ntp.year();
     highlighted_days[40].month = 11;
-    highlighted_days[40].day = 18;
-
-    //День матери
+    highlighted_days[40].day = 4;
+    
+    //День полиции
     highlighted_days[41].year = ntp.year();
     highlighted_days[41].month = 11;
-    highlighted_days[41].day = 26;
-    
-    //День морской пехоты
+    highlighted_days[41].day = 10;
+
+    //День ракетных войск и артиллерии
     highlighted_days[42].year = ntp.year();
     highlighted_days[42].month = 11;
-    highlighted_days[42].day = 27;
+    highlighted_days[42].day = 18;
+
+    //День матери
+    highlighted_days[43].year = ntp.year();
+    highlighted_days[43].month = 11;
+    highlighted_days[43].day = 26;
+    
+    //День морской пехоты
+    highlighted_days[44].year = ntp.year();
+    highlighted_days[44].month = 11;
+    highlighted_days[44].day = 27;
 
     //День героев Отечества
-    highlighted_days[43].year = ntp.year();
-    highlighted_days[43].month = 12;
-    highlighted_days[43].day = 9;
-    
-    //День стратегических ракетных войск
-    highlighted_days[44].year = ntp.year();
-    highlighted_days[44].month = 12;
-    highlighted_days[44].day = 17;
-    
-    //Декабрьское солнцестояние
     highlighted_days[45].year = ntp.year();
     highlighted_days[45].month = 12;
-    highlighted_days[45].day = 22;
+    highlighted_days[45].day = 9;
     
-    //Канун нового года
+    //День стратегических ракетных войск
     highlighted_days[46].year = ntp.year();
     highlighted_days[46].month = 12;
-    highlighted_days[46].day = 31;
+    highlighted_days[46].day = 17;
+    
+    //Декабрьское солнцестояние
+    highlighted_days[47].year = ntp.year();
+    highlighted_days[47].month = 12;
+    highlighted_days[47].day = 22;
+    
+    //Канун нового года
+    highlighted_days[48].year = ntp.year();
+    highlighted_days[48].month = 12;
+    highlighted_days[48].day = 31;
 
   //Массив праздников
-  char *celeb[47]={"Новый год",
+  char *celeb[49]={"Новый год",
   "Второй день Нового года",
   "Третий день Нового года",
   "Четвертый день Нового года",
@@ -1985,14 +2063,16 @@ void set_calendars_date()
   "Международный женский день",
   "Мартовское равноденствие",
   "День работников культуры",
-  "День местного самоуправления",
+  "Национальный день донора крови",
   "День памяти о радиационных авариях и катастрофах",
   "День весны и труда",
   "День Победы",
   "День пограничника",
+  "День защиты детей",
   "День русского языка",
   "День социальных работников",
   "День России",
+  "Всемирный день донора крови",
   "Июньское солнцестояние",
   "День военно-морского флота",
   "День ВДВ",
@@ -2018,7 +2098,7 @@ void set_calendars_date()
   };
 
   lv_calendar_set_highlighted_dates(calendar, highlighted_days, 46);
-  for (byte i=0;i<46;i++)
+  for (byte i=0;i<49;i++)
             {
               if (ntp.month()==highlighted_days[i].month && ntp.day()==highlighted_days[i].day)
               {
@@ -2028,42 +2108,6 @@ void set_calendars_date()
             }
   
     
-}
-
-bool sd_init()
-{
-    pinMode(SD_CS, OUTPUT);
-    digitalWrite(SD_CS, HIGH);
-    SPI.begin(SD_SCK, SD_MISO, SD_MOSI);
-    SPI.setFrequency(1000000);
-    
-    if(!SD.begin(SD_CS)){
-        Serial.println("Card Mount Failed");
-        return false;
-    }
-    uint8_t cardType = SD.cardType();
-
-    if(cardType == CARD_NONE){
-        Serial.println("No SD card attached");
-        return false;
-    }
-
-    Serial.print("SD Card Type: ");
-    if(cardType == CARD_MMC){
-        Serial.println("MMC");
-    } else if(cardType == CARD_SD){
-        Serial.println("SDSC");
-    } else if(cardType == CARD_SDHC){
-        Serial.println("SDHC");
-    } else {
-        Serial.println("UNKNOWN");
-    }
-
-    uint64_t cardSize = SD.cardSize() / (1024 * 1024);
-    Serial.printf("SD Card Size: %lluMB\n", cardSize);
-    Serial.printf("Total space: %lluMB\n", SD.totalBytes() / (1024 * 1024));
-    Serial.printf("Used space: %lluMB\n", SD.usedBytes() / (1024 * 1024));
-    return true;
 }
 
 void loop()
@@ -2097,13 +2141,13 @@ void loop()
   lv_label_set_text_fmt(roomhumid, LV_SYMBOL_HUMIDITY"%.1f%",bme.humidity);
   lv_label_set_text_fmt(roompress,LV_SYMBOL_PRESSURE"%dмм рт. ст.",bme.pressure/133,3);
   int airquality=bme.gas_resistance / 1000;
-  if (airquality<51) {lv_label_set_text_fmt(roomair,"Качество воздуха: Хорошее",airquality);}
-  if (airquality>50 && airquality<101) {lv_label_set_text_fmt(roomair,"Качество воздуха: Среднее",airquality);} 
-  if (airquality>100 && airquality<151) {lv_label_set_text_fmt(roomair,"Качество воздуха: Ниже среднего",airquality);} 
-  if (airquality>150 && airquality<201) {lv_label_set_text_fmt(roomair,"Качество воздуха: Плохое",airquality);} 
-  if (airquality>200 && airquality<301) {lv_label_set_text_fmt(roomair,"Качество воздуха: Очень плохое",airquality);} 
-  if (airquality>300) {lv_label_set_text_fmt(roomair,"Качество воздуха: Опасное",airquality);} 
-  lv_bar_set_value(roomair_bar,airquality, LV_ANIM_ON);
+  if (airquality<51) {lv_label_set_text_fmt(roomair,"Качество воздуха: Хорошее",airquality);ledcWrite(1, 255);ledcWrite(2, 128);ledcWrite(3, 255);}
+  if (airquality>50 && airquality<101) {lv_label_set_text_fmt(roomair,"Качество воздуха: Среднее",airquality);ledcWrite(1, 255);ledcWrite(2, 200);ledcWrite(3, 255);} 
+  if (airquality>100 && airquality<151) {lv_label_set_text_fmt(roomair,"Качество воздуха: Ниже среднего",airquality);ledcWrite(1, 225);ledcWrite(2, 225);ledcWrite(3, 255);} 
+  if (airquality>150 && airquality<201) {lv_label_set_text_fmt(roomair,"Качество воздуха: Плохое",airquality);ledcWrite(1, 225);ledcWrite(2, 165);ledcWrite(3, 255);} 
+  if (airquality>200 && airquality<301) {lv_label_set_text_fmt(roomair,"Качество воздуха: Очень плохое",airquality);ledcWrite(1, 200);ledcWrite(2, 255);ledcWrite(3, 255);} 
+  if (airquality>300) {lv_label_set_text_fmt(roomair,"Качество воздуха: Опасное",airquality);ledcWrite(1, 100);ledcWrite(2, 255);ledcWrite(3, 255);} 
+  lv_bar_set_value(roomair_bar,airquality/10, LV_ANIM_ON);
   lv_label_set_text_fmt(roomair_bar_label,"%d",airquality);
   }
     }        

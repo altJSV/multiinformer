@@ -3,7 +3,7 @@ void getweather(){
   const String api_1 = "http://api.openweathermap.org/data/2.5/weather?q=";
 const String api_2 = "&units=metric&lang=ru"; //температура в градусах цельсия и русский язык
 const String api_3 = "&APPID=";
-
+  
 
   WiFiClient client;
   HTTPClient http;
