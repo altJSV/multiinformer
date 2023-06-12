@@ -1842,16 +1842,16 @@ delay(1000);
   if (WiFi.status() == WL_CONNECTED)
   {
   
-  Serial.println(WiFi.localIP());
   Serial.println("ntp start");
 //запуск сервиса синхронизации времени
-tries=10;
+uint8_t numtries=10;
 bool ntpstart=false;
- while (tries>0 && ntpstart==0)
+ while (numtries>0 && ntpstart==0)
  {
 ntp.setGMT(gmt);
 bool ntpstart=ntp.begin();
-tries--;
+Serial.println(ntpstart);
+numtries--;
  }
  //ntp.setHost(ntpserver);
 Serial.println("calendar start");
