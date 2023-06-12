@@ -1,7 +1,7 @@
 
 //Подключаем библиотеки
   #include <lvgl.h> //библиотека пользовательского интерфейса
-  
+  #include "secrets.h"
   #include <FS.h> //Работа с файловой системой
   #include <SPIFFS.h> //файловая система esp32
   #include "SD.h"//работа с sd картой
@@ -10,10 +10,9 @@
   #include "touch.h"//функции для работы с тачскрином
   #include <GyverNTP.h>//синхронизация времени по интернету
   #include <GyverTimer.h>//подключение различных таймеров
-  #include <WiFiManager.h> //WiFi менеджер 
   #include <ArduinoJson.h>//библиотека для работы с файлами конфигурации
   #include <WiFi.h>//wifi функции
-  #include <WiFiClientSecure.h>//для связи по протоколу https
+  #include <WiFiClient.h>//для связи по протоколу https
   #include <HTTPClient.h>//отправка http запросов
   #include <Adafruit_Sensor.h>//универсальная библиотека для работы с различными сенсорами
   #include "Adafruit_BME680.h"//библиотека для работы с датчиком BME680
@@ -114,10 +113,7 @@
   //Переменные для отслеживание изменений в настройках и вызов функции сохранения
   bool saveconf=false; //флаг измения настроек
   uint8_t prev_tab=0; //предыдущая активная вкладка
-  String pc_server_path="http://192.168.1.66:8085/data.json";//адрес сервера пк
-  //Погода
-  String api_key = "apikey";  //ваш api ключ погоды
-  String qLocation = "Gubkin,ru"; //город для погоды
+  
   int8_t gmt=3; //часовой пояс
   char * ntpserver="pool.ntp.org";
 
@@ -232,7 +228,7 @@
 //Инициализация BME датчика
   Adafruit_BME680 bme;
 //Инициализация Wifi Manager  
-  WiFiManager wm;
+  //WiFiManager wm;
 //Инициализации библиотек и переферии
   //инициализация библиотеки TFT_eSPI
   TFT_eSPI tft = TFT_eSPI();  
@@ -874,7 +870,7 @@
     }
 
 //Запуск WifiManager
-  void button_set_wifimanager_event (lv_event_t * e)
+/*  void button_set_wifimanager_event (lv_event_t * e)
     {
       if (!wm.startConfigPortal("Multiinformer")) {
         Serial.println("failed to connect or hit timeout");
@@ -884,7 +880,7 @@
         //if you get here you have connected to the WiFi
         Serial.println("connected...)");
       }
-    } 
+    }*/ 
 
 //инициализация LVGL и создание всех объектов
 void lvlg_create()
@@ -1721,7 +1717,7 @@ Serial.println("3 screen");
         lv_table_set_cell_value(wifitable, 7, 0, "Шлюз");
 //Кнопки
     lv_obj_t * ui_button_set_wifimanager = lv_btn_create(wifi_settingspanel1);
-    lv_obj_add_event_cb(ui_button_set_wifimanager, button_set_wifimanager_event, LV_EVENT_CLICKED, NULL);
+    //lv_obj_add_event_cb(ui_button_set_wifimanager, button_set_wifimanager_event, LV_EVENT_CLICKED, NULL);
     lv_obj_align_to(ui_button_set_wifimanager, wifitable, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 10);
     lv_obj_t * ui_button_label_button_set_wifimanager = lv_label_create(ui_button_set_wifimanager);
     lv_label_set_text(ui_button_label_button_set_wifimanager, "Запуск Wifi менеджера");
@@ -1813,22 +1809,28 @@ void setup()
       lvlg_create();
 Serial.println("wifi start");
 //подключение к WiFi
-//Инициализируем WiFiManager. При первом запуске создает точку доступа "Multinformer". Подключитесь к ней по WiFi и настройте параметры подключения к сети 
-  bool res;
-  res = wm.autoConnect("Multiinformer");
-  //Выводим IP на экран
-  if (res)
-  {
-  IPAddress ip = WiFi.localIP();
-  String ipString =String(ip[0]);
-  for (byte octet = 1; octet < 4; ++octet) {
-    ipString += '.' + String(ip[octet]);
+WiFi.disconnect(true);
+delay(1000);
+
+  WiFi.onEvent(WiFiStationConnected, WiFiEvent_t::ARDUINO_EVENT_WIFI_STA_CONNECTED);
+  WiFi.onEvent(WiFiGotIP, WiFiEvent_t::ARDUINO_EVENT_WIFI_STA_GOT_IP);
+  WiFi.onEvent(WiFiStationDisconnected, WiFiEvent_t::ARDUINO_EVENT_WIFI_STA_DISCONNECTED);
+  uint8_t tries = 11;
+  Serial.println();
+  Serial.printf("Connecting to %s ", SSID);
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(SSID, PASS);
+  while (--tries && WiFi.status() != WL_CONNECTED) {
+    Serial.print(".");
+    delay(500);
   }
-  lv_label_set_text_fmt(wifistatus, "%s "LV_SYMBOL_WIFI, ipString.c_str());
+  if (WiFi.status() == WL_CONNECTED)
+  {
+  
   Serial.println(WiFi.localIP());
   Serial.println("ntp start");
 //запуск сервиса синхронизации времени
-uint8_t tries=10;
+tries=10;
 bool ntpstart=false;
  while (tries>0 && ntpstart==0)
  {
@@ -2213,6 +2215,31 @@ Serial.println("photo start");
             }
   
     
+}
+
+//События WiFi
+void WiFiStationConnected(WiFiEvent_t event, WiFiEventInfo_t info){
+  Serial.println("Connected to AP successfully!");
+}
+
+void WiFiGotIP(WiFiEvent_t event, WiFiEventInfo_t info){
+  Serial.println("WiFi connected");
+  IPAddress ip = WiFi.localIP();
+  String ipString =String(ip[0]);
+  for (byte octet = 1; octet < 4; ++octet) {
+    ipString += '.' + String(ip[octet]);
+  }
+  lv_label_set_text_fmt(wifistatus, "%s "LV_SYMBOL_WIFI, ipString.c_str());
+  Serial.println("IP address: ");
+  Serial.println(ip);
+}
+
+void WiFiStationDisconnected(WiFiEvent_t event, WiFiEventInfo_t info){
+  Serial.println("Disconnected from WiFi access point");
+  Serial.print("WiFi lost connection. Reason: ");
+  Serial.println(info.wifi_sta_disconnected.reason);
+  Serial.println("Trying to Reconnect");
+  WiFi.begin(SSID, PASS);
 }
 
 void loop()
