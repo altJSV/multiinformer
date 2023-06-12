@@ -1850,7 +1850,7 @@ bool ntpstart=false;
  {
 ntp.setGMT(gmt);
 bool ntpstart=ntp.begin();
-Serial.println(ntpstart);
+Serial.println(ntp.status());
 numtries--;
  }
  //ntp.setHost(ntpserver);
@@ -1920,7 +1920,15 @@ Serial.println("photo start");
 //Установка актуальной даты на календаре
   void set_calendars_date()
   {
+  bool ntpsync=false;
+  uint8_t tries=10;
+  while (ntpsync==false && tries>0)
+  {
   ntp.updateNow();
+  ntpsync=ntp.synced();
+  Serial.println(ntpsync);
+  tries--;
+  }
   lv_calendar_set_today_date(calendar, ntp.year(), ntp.month(), ntp.day());
   lv_calendar_set_showed_date(calendar, ntp.year(), ntp.month());
   lastday=ntp.day(); //присваиваем переменной lastday значение текущего дня
