@@ -22,7 +22,9 @@ void loadConfiguration(const char *filename) {
   const char * jspc_server_path = doc1["pcadress"] ;
   //const char * jstoken = doc1["yatoken"];
   const char * jsapi_key= doc1["weatherapi"];
-  const char * jsqLocation= doc1["weathercity"]; 
+  const char * jsqLocation= doc1["weathercity"];
+  const char * jsSSID=doc1["ssid"];
+  const char * jsPASS=doc1["pass"];
   usesensor= (bool)doc1["usesensor"];
   gmt= (int8_t)doc1["gmt"];
   Serial.println(gmt);
@@ -38,6 +40,8 @@ void loadConfiguration(const char *filename) {
   ledindicator = (bool)doc1["ledindicator"];
   api_key = jsapi_key;
   qLocation  = jsqLocation;
+  SSID=jsSSID;
+  PASS=jsPASS;
   // Close the file (Curiously, File's destructor doesn't close the file)
   file.close();
 }
@@ -72,6 +76,8 @@ void saveConfiguration(const char *filename) {
   doc1["usesensor"] = usesensor; //использование сенсора bme
   doc1["refsensorinterval"] = refsensorinterval; //период обновления сенсора
   doc1["bright_level"] = bright_level;// яркость подсветки экрана
+  doc1["ssid"] = SSID; //часовой пояс
+  doc1["pass"] = PASS;//состояние led индикатора
   //doc1["ntpserver"]=ntpserver;
   //Serial.println(ntpserver);
   doc1["photosensor"] = photosensor; //автоматическая регулировка яркости подсветки

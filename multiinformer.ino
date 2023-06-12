@@ -218,6 +218,8 @@
     static lv_obj_t * bme_int_slider_label;
     static lv_obj_t * gmt_slider_label;
     static lv_obj_t * wifitable;
+    static lv_obj_t * wifipass_ta;
+    static lv_obj_t * wifissid_ta;
 
 
 
@@ -387,7 +389,21 @@
   {
   pc_server_path=lv_textarea_get_text(pc_ta);
   saveconf=true;
+  }
+//Обработка введенного текста в поле ssid wifi
+  static void wifissid_ta_event_cb(lv_event_t * e)
+  {
+  SSID=lv_textarea_get_text(wifissid_ta);
+  saveconf=true;
   } 
+//Обработка введенного текста в поле pass wifi
+  static void wifipass_ta_event_cb(lv_event_t * e)
+  {
+    PASS=lv_textarea_get_text(wifipass_ta);
+    saveconf=true;
+  }
+
+
 //Изменение параметра плейлиста
   static void radio_ta_event_cb(lv_event_t * e)
   {
@@ -1666,12 +1682,46 @@ Serial.println("3 screen");
     lv_obj_center(ui_button_label_set_playlistload);
 //Экран настроек WiFi
   lv_obj_t * wifi_settingspanel1 = lv_obj_create(settab6);
-  lv_obj_set_size(wifi_settingspanel1, 340,LV_SIZE_CONTENT);
+  lv_obj_set_size(wifi_settingspanel1, 340,130);
   //Заголовок панели
     lv_obj_t  * ui_label_set_cat_wifi_set = lv_label_create(wifi_settingspanel1); //создаем объект заголовок
     lv_label_set_text(ui_label_set_cat_wifi_set , "Настройки WiFi"); //сам текст для надписи
     lv_obj_align(ui_label_set_cat_wifi_set , LV_ALIGN_TOP_MID, 0, 0); //положение на экране 
-    wifitable = lv_table_create(wifi_settingspanel1);
+
+  lv_obj_t  * ui_label_wifi_ssid = lv_label_create(wifi_settingspanel1); //создаем объект заголовок
+  lv_label_set_text(ui_label_wifi_ssid, "SSID:"); //сам текст для надписи
+  lv_obj_align(ui_label_wifi_ssid , LV_ALIGN_TOP_LEFT, 0, 20); //положение на экране
+ 
+  wifissid_ta = lv_textarea_create(wifi_settingspanel1);
+    lv_textarea_set_one_line(wifissid_ta, true);
+    lv_obj_align(wifissid_ta, LV_ALIGN_TOP_LEFT, 0, 40);
+     lv_obj_set_width(wifissid_ta,140);
+     lv_textarea_set_text(wifissid_ta, SSID.c_str());
+     lv_obj_add_event_cb(wifissid_ta, ta_event_cb, LV_EVENT_ALL, kb);
+     lv_obj_add_event_cb(wifissid_ta, wifissid_ta_event_cb, LV_EVENT_READY, NULL);
+
+  lv_obj_t  * ui_label_wifi_pass = lv_label_create(wifi_settingspanel1); //создаем объект заголовок
+  lv_label_set_text(ui_label_wifi_pass, "Пароль:"); //сам текст для надписи
+  lv_obj_align(ui_label_wifi_pass , LV_ALIGN_TOP_LEFT, 155, 20); //положение на экране
+ 
+  wifipass_ta = lv_textarea_create(wifi_settingspanel1);
+    lv_textarea_set_one_line(wifipass_ta, true);
+    lv_obj_align(wifipass_ta, LV_ALIGN_TOP_LEFT, 155, 40);
+     lv_obj_set_width(wifipass_ta,150);
+     lv_textarea_set_text(wifipass_ta, PASS.c_str());
+     lv_obj_add_event_cb(wifipass_ta, ta_event_cb, LV_EVENT_ALL, kb);
+     lv_obj_add_event_cb(wifipass_ta, wifipass_ta_event_cb, LV_EVENT_READY, NULL);    
+     lv_textarea_set_password_mode(wifipass_ta, true);
+
+  //Заголовок панели
+    lv_obj_t * wifi_settingspanel2 = lv_obj_create(settab6);
+    lv_obj_set_size(wifi_settingspanel2, 340,LV_SIZE_CONTENT);
+    lv_obj_set_pos(wifi_settingspanel2, 0, 140);
+    //Заголовок панели
+    lv_obj_t  * ui_label_set_cat_wifi_inf = lv_label_create(wifi_settingspanel2); //создаем объект заголовок
+    lv_label_set_text(ui_label_set_cat_wifi_inf , "Информация WiFi"); //сам текст для надписи
+    lv_obj_align(ui_label_set_cat_wifi_inf , LV_ALIGN_TOP_MID, 0, 0); //положение на экране 
+    wifitable = lv_table_create(wifi_settingspanel2);
     lv_obj_set_width(wifitable, 300);
     lv_obj_add_event_cb(wifitable, draw_table_part_event_cb, LV_EVENT_DRAW_PART_BEGIN, NULL);
         lv_obj_set_pos(wifitable, 0, 20);
@@ -1687,14 +1737,7 @@ Serial.println("3 screen");
         lv_table_set_cell_value(wifitable, 5, 0, "Хост");
         lv_table_set_cell_value(wifitable, 6, 0, "Сигнал");
         lv_table_set_cell_value(wifitable, 7, 0, "Шлюз");
-  //Кнопки
-  /*  lv_obj_t * ui_button_set_wifimanager = lv_btn_create(wifi_settingspanel1);
-    //lv_obj_add_event_cb(ui_button_set_wifimanager, button_set_wifimanager_event, LV_EVENT_CLICKED, NULL);
-    lv_obj_align_to(ui_button_set_wifimanager, wifitable, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 10);
-    lv_obj_t * ui_button_label_button_set_wifimanager = lv_label_create(ui_button_set_wifimanager);
-    lv_label_set_text(ui_button_label_button_set_wifimanager, "Запуск Wifi менеджера");
-    lv_obj_center(ui_button_label_button_set_wifimanager);
-  */
+  
 }
 
 
