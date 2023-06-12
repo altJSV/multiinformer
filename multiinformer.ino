@@ -1305,35 +1305,7 @@ Serial.println("3 screen");
 
    
   Serial.println("5 screen"); 
-//Экран РСЯ  Вкладка 5
-  //lv_obj_t  * label3 = lv_label_create(tab5); //создаем объект заголовок
-  //lv_label_set_text(label3, "РСЯ"); //сам текст для надписи
-  //lv_obj_align(label3, LV_ALIGN_TOP_MID, 0, 0); //положение на экране
-    
-    //График дохода 
-   // yachart = lv_chart_create(tab5);
-    //lv_obj_set_size(yachart, 430, 140);
-   // lv_chart_set_type(yachart, LV_CHART_TYPE_LINE);   /*Show lines and points too*/
-    //lv_chart_set_update_mode(yachart, LV_CHART_UPDATE_MODE_CIRCULAR);
-    //lv_chart_set_point_count(yachart, 31);
-    //Массив данных о доходе
-   // ser1 = lv_chart_add_series(yachart, lv_palette_main(LV_PALETTE_RED), LV_CHART_AXIS_PRIMARY_Y);
-    //lv_chart_set_range(yachart, LV_CHART_AXIS_PRIMARY_Y, 0, 500);
-   // lv_chart_set_range(yachart, LV_CHART_AXIS_PRIMARY_X, 0, 31);
-   // lv_chart_set_axis_tick(yachart, LV_CHART_AXIS_PRIMARY_Y, 10, 5, 6, 5, true, 40);
-   // lv_chart_set_axis_tick(yachart, LV_CHART_AXIS_PRIMARY_X, 10, 5, 31, 1, false, 20);
-   // lv_obj_align(yachart, LV_ALIGN_BOTTOM_LEFT, 20, -30);
-    //Надпись дневной доход
-    //daycash = lv_label_create(tab5); //создаем объект Надпись 
-  //lv_label_set_text(daycash, "Доход за сегодня:"); //сам текст для надписи
-  //lv_obj_align(daycash, LV_ALIGN_TOP_LEFT, 0, 20); //положение на экране
-  //lv_obj_add_style(daycash, &bigtext, 0);
-  //Надпись доход за месяц
-   // totalcash = lv_label_create(tab5); //создаем объект Надпись
-  //lv_label_set_text(totalcash, "Общий доход:"); //сам текст для надписи
-  //lv_obj_align(totalcash, LV_ALIGN_TOP_LEFT, 0, 50); //положение на экране
-  //lv_obj_add_style(totalcash, &bigtext, 0);
-  //lv_obj_add_event_cb(yachart, show_cash_value_cb, LV_EVENT_ALL, NULL);
+
 //Экран радио вкладка 6  
   Serial.println("radio");
   radio_playing_value_label = lv_label_create(tab6); //номер станции
@@ -1440,23 +1412,23 @@ Serial.println("3 screen");
         lv_obj_t * settab4 = lv_tabview_add_tab(set_tabview, "Датчик BME");
         lv_obj_t * settab5 = lv_tabview_add_tab(set_tabview, "SD карта");
         lv_obj_add_event_cb(set_tabview, change_settings_tab_event, LV_EVENT_ALL, NULL);//смена активной вкладки
-  //1 вкладка настроек Основные
-  //Настройки дисплея
-  lv_obj_t * settingspanel1 = lv_obj_create(settab1);
-  lv_obj_set_size(settingspanel1, 340,125);
-  lv_obj_t  * ui_label_set_cat_display = lv_label_create(settingspanel1); //создаем объект заголовок
-  lv_label_set_text(ui_label_set_cat_display, "Дисплей"); //сам текст для надписи
-  lv_obj_align(ui_label_set_cat_display, LV_ALIGN_TOP_MID, 0, 0); //положение на экране  
+//1 вкладка настроек Основные
+    //Настройки дисплея
+    lv_obj_t * settingspanel1 = lv_obj_create(settab1);
+    lv_obj_set_size(settingspanel1, 340,125);
+    lv_obj_t  * ui_label_set_cat_display = lv_label_create(settingspanel1); //создаем объект заголовок
+    lv_label_set_text(ui_label_set_cat_display, "Дисплей"); //сам текст для надписи
+    lv_obj_align(ui_label_set_cat_display, LV_ALIGN_TOP_MID, 0, 0); //положение на экране  
   
-  lv_obj_t  * ui_label_changebrightness = lv_label_create(settingspanel1); //создаем объект заголовок
-  lv_label_set_text(ui_label_changebrightness, "Настройка яркости экрана"); //сам текст для надписи
-  lv_obj_align(ui_label_changebrightness, LV_ALIGN_TOP_LEFT, 0, 20); //положение на экране
-  //выключаетль автояркости
-  lv_obj_t * autobright_switch = lv_switch_create(settingspanel1);
-  lv_obj_add_event_cb(autobright_switch, autobright_switch_event, LV_EVENT_ALL, NULL);
-  lv_obj_align(autobright_switch, LV_ALIGN_TOP_RIGHT, 0, 20); //положение на экране
-  lv_obj_set_size(autobright_switch,32,16);
-  if (photosensor)
+    lv_obj_t  * ui_label_changebrightness = lv_label_create(settingspanel1); //создаем объект заголовок
+    lv_label_set_text(ui_label_changebrightness, "Настройка яркости экрана"); //сам текст для надписи
+    lv_obj_align(ui_label_changebrightness, LV_ALIGN_TOP_LEFT, 0, 20); //положение на экране
+    //выключаетль автояркости
+    lv_obj_t * autobright_switch = lv_switch_create(settingspanel1);
+    lv_obj_add_event_cb(autobright_switch, autobright_switch_event, LV_EVENT_ALL, NULL);
+    lv_obj_align(autobright_switch, LV_ALIGN_TOP_RIGHT, 0, 20); //положение на экране
+    lv_obj_set_size(autobright_switch,32,16);
+    if (photosensor)
     {
       lv_obj_add_state(autobright_switch, LV_STATE_CHECKED); 
     }
@@ -1464,31 +1436,31 @@ Serial.println("3 screen");
     {
       lv_obj_clear_state(autobright_switch, LV_STATE_CHECKED);
     }
-  //Надпись авторяркости
-  lv_obj_t  * ui_label_autobrightness = lv_label_create(settingspanel1); //создаем объект заголовок
-  lv_label_set_text(ui_label_autobrightness, "Авто"); //сам текст для надписи
-  lv_obj_align(ui_label_autobrightness, LV_ALIGN_TOP_RIGHT, -36, 20); //положение на экране
-  //Создаем слайдер изменения яркости
-  lv_obj_t * slider_brightness = lv_slider_create(settingspanel1);
-  lv_obj_align(slider_brightness, LV_ALIGN_TOP_LEFT, 0, 50);
-  lv_obj_set_width(slider_brightness,300);
-  lv_slider_set_range(slider_brightness, 1 , 255);
-  lv_slider_set_value(slider_brightness, bright_level, LV_ANIM_OFF);
-  lv_obj_add_event_cb(slider_brightness, slider_brightness_event_cb, LV_EVENT_VALUE_CHANGED, NULL);
+    //Надпись авторяркости
+    lv_obj_t  * ui_label_autobrightness = lv_label_create(settingspanel1); //создаем объект заголовок
+    lv_label_set_text(ui_label_autobrightness, "Авто"); //сам текст для надписи
+    lv_obj_align(ui_label_autobrightness, LV_ALIGN_TOP_RIGHT, -36, 20); //положение на экране
+    //Создаем слайдер изменения яркости
+    lv_obj_t * slider_brightness = lv_slider_create(settingspanel1);
+    lv_obj_align(slider_brightness, LV_ALIGN_TOP_LEFT, 0, 50);
+    lv_obj_set_width(slider_brightness,300);
+    lv_slider_set_range(slider_brightness, 1 , 255);
+    lv_slider_set_value(slider_brightness, bright_level, LV_ANIM_OFF);
+    lv_obj_add_event_cb(slider_brightness, slider_brightness_event_cb, LV_EVENT_VALUE_CHANGED, NULL);
   
-  slider_label = lv_label_create(settingspanel1);
-  lv_label_set_text_fmt(slider_label, "%d%", (int)lv_slider_get_value(slider_brightness));
-  lv_obj_align_to(slider_label, slider_brightness, LV_ALIGN_CENTER, 0, 0);
+    slider_label = lv_label_create(settingspanel1);
+    lv_label_set_text_fmt(slider_label, "%d%", (int)lv_slider_get_value(slider_brightness));
+    lv_obj_align_to(slider_label, slider_brightness, LV_ALIGN_CENTER, 0, 0);
 
-  lv_obj_t  * ui_label_change_rgb_ind = lv_label_create(settingspanel1); //создаем объект заголовок
-  lv_label_set_text(ui_label_change_rgb_ind, "RGB индикатор"); //сам текст для надписи
-  lv_obj_align(ui_label_change_rgb_ind, LV_ALIGN_TOP_LEFT, 0, 80); //положение на экране
-  //выключаетль автояркости
-  lv_obj_t * rgb_indic_switch = lv_switch_create(settingspanel1);
-  lv_obj_add_event_cb(rgb_indic_switch , rgb_indic_switch_event, LV_EVENT_ALL, NULL);
-  lv_obj_align(rgb_indic_switch , LV_ALIGN_TOP_RIGHT, 0, 80); //положение на экране
-  lv_obj_set_size(rgb_indic_switch ,32,16);
-  if (ledindicator)
+    lv_obj_t  * ui_label_change_rgb_ind = lv_label_create(settingspanel1); //создаем объект заголовок
+    lv_label_set_text(ui_label_change_rgb_ind, "RGB индикатор"); //сам текст для надписи
+    lv_obj_align(ui_label_change_rgb_ind, LV_ALIGN_TOP_LEFT, 0, 80); //положение на экране
+    //выключатель rgb индикатора
+    lv_obj_t * rgb_indic_switch = lv_switch_create(settingspanel1);
+    lv_obj_add_event_cb(rgb_indic_switch , rgb_indic_switch_event, LV_EVENT_ALL, NULL);
+    lv_obj_align(rgb_indic_switch , LV_ALIGN_TOP_RIGHT, 0, 80); //положение на экране
+    lv_obj_set_size(rgb_indic_switch ,32,16);
+    if (ledindicator)
     {
       lv_obj_add_state(rgb_indic_switch , LV_STATE_CHECKED); 
     }
@@ -1497,19 +1469,19 @@ Serial.println("3 screen");
       lv_obj_clear_state(rgb_indic_switch , LV_STATE_CHECKED);
     }
 
-  //Настройки NTP
-  lv_obj_t * settingspanel2 = lv_obj_create(settab1);
+    //Настройки NTP
+    lv_obj_t * settingspanel2 = lv_obj_create(settab1);
     lv_obj_set_size(settingspanel2, 340,LV_SIZE_CONTENT);
     lv_obj_set_pos(settingspanel2, 0, 135);
-  lv_obj_t  * ui_label_set_cat_time = lv_label_create(settingspanel2); //создаем объект заголовок
-  lv_label_set_text(ui_label_set_cat_time, "NTP"); //сам текст для надписи
-  lv_obj_align(ui_label_set_cat_time, LV_ALIGN_TOP_MID, 0, 0); //положение на экране
+    lv_obj_t  * ui_label_set_cat_time = lv_label_create(settingspanel2); //создаем объект заголовок
+    lv_label_set_text(ui_label_set_cat_time, "NTP"); //сам текст для надписи
+    lv_obj_align(ui_label_set_cat_time, LV_ALIGN_TOP_MID, 0, 0); //положение на экране
 
-  lv_obj_t  * ui_label_ntp_server = lv_label_create(settingspanel2); //создаем объект заголовок
-  lv_label_set_text(ui_label_ntp_server, "Сервер:"); //сам текст для надписи
-  lv_obj_align(ui_label_ntp_server, LV_ALIGN_TOP_LEFT, 0, 30); //положение на экране 
+    lv_obj_t  * ui_label_ntp_server = lv_label_create(settingspanel2); //создаем объект заголовок
+    lv_label_set_text(ui_label_ntp_server, "Сервер:"); //сам текст для надписи
+    lv_obj_align(ui_label_ntp_server, LV_ALIGN_TOP_LEFT, 0, 30); //положение на экране 
 
-  lv_obj_t * ui_dd_ntp_server = lv_dropdown_create(settingspanel2);
+    lv_obj_t * ui_dd_ntp_server = lv_dropdown_create(settingspanel2);
     lv_dropdown_set_options(ui_dd_ntp_server, "pool.ntp.org\n"
                             "ntp.msk-ix.ru\n"
                             "ntp1.vniiftri.ru\n"
@@ -1521,30 +1493,30 @@ Serial.println("3 screen");
     lv_dropdown_set_selected(ui_dd_ntp_server, lv_dropdown_get_option_index(ui_dd_ntp_server, ntpserver));
     lv_obj_add_event_cb(ui_dd_ntp_server, ui_dd_ntp_server_event, LV_EVENT_VALUE_CHANGED, NULL);
   
-  lv_obj_t  * ui_label_ntp_gmt = lv_label_create(settingspanel2); //создаем объект заголовок
-  lv_label_set_text(ui_label_ntp_gmt, "Часовой пояс:"); //сам текст для надписи
-  lv_obj_align(ui_label_ntp_gmt, LV_ALIGN_TOP_LEFT, 0, 70); 
+    lv_obj_t  * ui_label_ntp_gmt = lv_label_create(settingspanel2); //создаем объект заголовок
+    lv_label_set_text(ui_label_ntp_gmt, "Часовой пояс:"); //сам текст для надписи
+    lv_obj_align(ui_label_ntp_gmt, LV_ALIGN_TOP_LEFT, 0, 70); 
 
-  lv_obj_t * slider_gmt = lv_slider_create(settingspanel2);
-  lv_obj_align(slider_gmt, LV_ALIGN_TOP_LEFT, 0, 100);
-  lv_obj_set_width(slider_gmt,300);
-  lv_slider_set_range(slider_gmt, -12 , 14);
-  lv_slider_set_value(slider_gmt, gmt, LV_ANIM_OFF);
-  lv_obj_add_event_cb(slider_gmt, slider_gmt_event_cb, LV_EVENT_VALUE_CHANGED, NULL);
+    lv_obj_t * slider_gmt = lv_slider_create(settingspanel2);
+    lv_obj_align(slider_gmt, LV_ALIGN_TOP_LEFT, 0, 100);
+    lv_obj_set_width(slider_gmt,300);
+    lv_slider_set_range(slider_gmt, -12 , 14);
+    lv_slider_set_value(slider_gmt, gmt, LV_ANIM_OFF);
+    lv_obj_add_event_cb(slider_gmt, slider_gmt_event_cb, LV_EVENT_VALUE_CHANGED, NULL);
 
-  gmt_slider_label = lv_label_create(settingspanel2);
-  lv_label_set_text_fmt(gmt_slider_label, "GMT: %d", (int)lv_slider_get_value(slider_gmt));
-  lv_obj_align_to(gmt_slider_label, slider_gmt, LV_ALIGN_CENTER, 0, 0);
+    gmt_slider_label = lv_label_create(settingspanel2);
+    lv_label_set_text_fmt(gmt_slider_label, "GMT: %d", (int)lv_slider_get_value(slider_gmt));
+    lv_obj_align_to(gmt_slider_label, slider_gmt, LV_ALIGN_CENTER, 0, 0);
   
-  //2 вкладка настроек ПК монитор
- lv_obj_t * pc_settingspanel1 = lv_obj_create(settab2);
+//2 вкладка настроек ПК монитор
+  lv_obj_t * pc_settingspanel1 = lv_obj_create(settab2);
   lv_obj_set_size(pc_settingspanel1, 340,LV_SIZE_CONTENT);
  
- lv_obj_t  * ui_label_pc_server = lv_label_create(pc_settingspanel1); //создаем объект заголовок
+  lv_obj_t  * ui_label_pc_server = lv_label_create(pc_settingspanel1); //создаем объект заголовок
   lv_label_set_text(ui_label_pc_server, "Адрес сервера:"); //сам текст для надписи
   lv_obj_align(ui_label_pc_server , LV_ALIGN_TOP_LEFT, 0, 0); //положение на экране
  
- pc_ta = lv_textarea_create(pc_settingspanel1);
+  pc_ta = lv_textarea_create(pc_settingspanel1);
     lv_textarea_set_one_line(pc_ta, true);
     lv_obj_align(pc_ta, LV_ALIGN_TOP_LEFT, 0, 20);
      lv_obj_set_width(pc_ta,300);
@@ -1552,7 +1524,7 @@ Serial.println("3 screen");
      lv_obj_add_event_cb(pc_ta, ta_event_cb, LV_EVENT_ALL, kb);
      lv_obj_add_event_cb(pc_ta, pc_ta_event_cb, LV_EVENT_READY, NULL);
 
- lv_obj_t  * ui_label_pc_interval = lv_label_create(pc_settingspanel1); //создаем объект заголовок
+  lv_obj_t  * ui_label_pc_interval = lv_label_create(pc_settingspanel1); //создаем объект заголовок
   lv_label_set_text(ui_label_pc_interval, "Интервал обновления (секунды):"); //сам текст для надписи
   lv_obj_align(ui_label_pc_interval , LV_ALIGN_TOP_LEFT, 0, 70); //положение на экране
   
@@ -1568,7 +1540,7 @@ Serial.println("3 screen");
   lv_label_set_text_fmt(pc_int_slider_label, "%d%", (int)lv_slider_get_value(slider_pc_int));
    lv_obj_align_to(pc_int_slider_label, slider_pc_int, LV_ALIGN_CENTER, 0, 0);
 
-  //3 вкладка настроек Погода
+//3 вкладка настроек Погода
   lv_obj_t * wt_settingspanel1 = lv_obj_create(settab3);
   lv_obj_set_size(wt_settingspanel1, 340,LV_SIZE_CONTENT);
   
@@ -1576,7 +1548,7 @@ Serial.println("3 screen");
   lv_label_set_text(ui_label_weather_api, "OpenWeatherMap API ключ:"); //сам текст для надписи
   lv_obj_align(ui_label_weather_api , LV_ALIGN_TOP_LEFT, 0, 0); //положение на экране
  
- wt_ta = lv_textarea_create(wt_settingspanel1);
+  wt_ta = lv_textarea_create(wt_settingspanel1);
     lv_textarea_set_one_line(wt_ta, true);
     lv_obj_align(wt_ta, LV_ALIGN_TOP_LEFT, 0, 20);
      lv_obj_set_width(wt_ta,300);
@@ -1584,11 +1556,11 @@ Serial.println("3 screen");
      lv_obj_add_event_cb(wt_ta, ta_event_cb, LV_EVENT_ALL, kb);
      lv_obj_add_event_cb(wt_ta, wt_ta_event_cb, LV_EVENT_READY, NULL);
 
- lv_obj_t  * ui_label_weather_qLocation = lv_label_create(wt_settingspanel1); //создаем объект заголовок
+  lv_obj_t  * ui_label_weather_qLocation = lv_label_create(wt_settingspanel1); //создаем объект заголовок
   lv_label_set_text(ui_label_weather_qLocation, "Местоположение:"); //сам текст для надписи
   lv_obj_align(ui_label_weather_qLocation , LV_ALIGN_TOP_LEFT, 0, 70); //положение на экране
  
- wtl_ta = lv_textarea_create(wt_settingspanel1);
+  wtl_ta = lv_textarea_create(wt_settingspanel1);
     lv_textarea_set_one_line(wtl_ta, true);
     lv_obj_align(wtl_ta, LV_ALIGN_TOP_LEFT, 0, 90);
      lv_obj_set_width(wtl_ta,300);
@@ -1597,7 +1569,7 @@ Serial.println("3 screen");
      lv_obj_add_event_cb(wtl_ta, wtl_ta_event_cb, LV_EVENT_READY, NULL);    
 
 
- lv_obj_t  * ui_label_weather_interval = lv_label_create(wt_settingspanel1); //создаем объект заголовок
+  lv_obj_t  * ui_label_weather_interval = lv_label_create(wt_settingspanel1); //создаем объект заголовок
   lv_label_set_text(ui_label_weather_interval, "Интервал обновления (секунды):"); //сам текст для надписи
   lv_obj_align(ui_label_weather_interval , LV_ALIGN_TOP_LEFT, 0, 140); //положение на экране
   //Создаем слайдер изменения обновления
@@ -1614,7 +1586,7 @@ Serial.println("3 screen");
 
   
   
-  //4 вкладка настроек. Датчик BME 
+//4 вкладка настроек. Датчик BME 
     lv_obj_t * bme_settingspanel1 = lv_obj_create(settab4);
     lv_obj_set_size(bme_settingspanel1, 340,LV_SIZE_CONTENT);
     
@@ -1644,7 +1616,7 @@ Serial.println("3 screen");
     lv_label_set_text_fmt(bme_int_slider_label, "%d%", (int)lv_slider_get_value(slider_bme_int));
     lv_obj_align_to(bme_int_slider_label, slider_bme_int, LV_ALIGN_CENTER, 0, 0);
 
-  //5 вкладка настроек sd карта
+//5 вкладка настроек sd карта
     lv_obj_t * sd_settingspanel1 = lv_obj_create(settab5);
     lv_obj_set_size(sd_settingspanel1, 340,LV_SIZE_CONTENT);
     //Заголовок панели
@@ -1692,7 +1664,7 @@ Serial.println("3 screen");
     lv_obj_t * ui_button_label_set_playlistload = lv_label_create(ui_button_set_playlistload);
     lv_label_set_text(ui_button_label_set_playlistload, "Загрузить");
     lv_obj_center(ui_button_label_set_playlistload);
-  //Экран настроек WiFi
+//Экран настроек WiFi
   lv_obj_t * wifi_settingspanel1 = lv_obj_create(settab6);
   lv_obj_set_size(wifi_settingspanel1, 340,LV_SIZE_CONTENT);
   //Заголовок панели
@@ -1715,14 +1687,14 @@ Serial.println("3 screen");
         lv_table_set_cell_value(wifitable, 5, 0, "Хост");
         lv_table_set_cell_value(wifitable, 6, 0, "Сигнал");
         lv_table_set_cell_value(wifitable, 7, 0, "Шлюз");
-//Кнопки
-    lv_obj_t * ui_button_set_wifimanager = lv_btn_create(wifi_settingspanel1);
+  //Кнопки
+  /*  lv_obj_t * ui_button_set_wifimanager = lv_btn_create(wifi_settingspanel1);
     //lv_obj_add_event_cb(ui_button_set_wifimanager, button_set_wifimanager_event, LV_EVENT_CLICKED, NULL);
     lv_obj_align_to(ui_button_set_wifimanager, wifitable, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 10);
     lv_obj_t * ui_button_label_button_set_wifimanager = lv_label_create(ui_button_set_wifimanager);
     lv_label_set_text(ui_button_label_button_set_wifimanager, "Запуск Wifi менеджера");
     lv_obj_center(ui_button_label_button_set_wifimanager);
-
+  */
 }
 
 
