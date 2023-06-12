@@ -28,18 +28,14 @@ void loadConfiguration(const char *filename) {
   Serial.println(gmt);
   refpcinterval= (uint32_t)doc1["refpcinterval"];
   refweatherinterval= (uint32_t)doc1["refweatherinterval"];
-  //refyandexinterval= (uint32_t)doc1["refyandexinterval"];
   refsensorinterval= (uint32_t)doc1["refsensorinterval"];
   bright_level = (uint8_t)doc1["bright_level"];
   //String ntpserverbuf=doc1["ntpserver"] | "pool.ntp.org";
   //ntpserver=&ntpserverbuf[1];
   //Serial.println(ntpserver);
-  //red_level = (uint8_t)doc1["red_level"];
-  //green_level = (uint8_t)doc1["green_level"];
-  //blue_level = (uint8_t)doc1["blue_level"];
   photosensor= (bool)doc1["photosensor"];
   pc_server_path = jspc_server_path;
-  //token = jstoken;
+  ledindicator = (bool)doc1["ledindicator"];
   api_key = jsapi_key;
   qLocation  = jsqLocation;
   // Close the file (Curiously, File's destructor doesn't close the file)
@@ -64,24 +60,21 @@ void saveConfiguration(const char *filename) {
   StaticJsonDocument<1024> doc1;
 
   // Set the values in the document
-  doc1["pcadress"] = pc_server_path;
-  //doc1["yatoken"] = token;
-  doc1["weatherapi"] = api_key;
-  doc1["weathercity"] = qLocation;
-  doc1["usesensor"] = usesensor;
-  doc1["gmt"] = gmt;
-  Serial.println(gmt);
-  doc1["refpcinterval"] = refpcinterval;
-  doc1["refweatherinterval"] = refweatherinterval;
-  //doc1["refyandexinterval"] = refyandexinterval;
-  doc1["refsensorinterval"] = refsensorinterval;
-  doc1["bright_level"] = bright_level;
+  doc1["pcadress"] = pc_server_path; //адрес сервера пк монитора
+  doc1["refpcinterval"] = refpcinterval; //период обновления пк монитора
+  
+  doc1["weatherapi"] = api_key;//api ключ погоды
+  doc1["weathercity"] = qLocation; //Местоположение
+  doc1["refweatherinterval"] = refweatherinterval;//период обновления погоды
+  
+  doc1["gmt"] = gmt; //часовой пояс
+  doc1["ledindicator"] = ledindicator;//состояние led индикатора
+  doc1["usesensor"] = usesensor; //использование сенсора bme
+  doc1["refsensorinterval"] = refsensorinterval; //период обновления сенсора
+  doc1["bright_level"] = bright_level;// яркость подсветки экрана
   //doc1["ntpserver"]=ntpserver;
   //Serial.println(ntpserver);
-  //doc1["red_level"] = red_level;
-  //doc1["green_level"] = green_level;
-  //doc1["blue_level"] = blue_level;
-  doc1["photosensor"] = photosensor;
+  doc1["photosensor"] = photosensor; //автоматическая регулировка яркости подсветки
   // Serialize JSON to file
   if (serializeJson(doc1, file) == 0) {
     Serial.println(F("Failed to write to file"));

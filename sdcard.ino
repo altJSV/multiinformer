@@ -79,9 +79,9 @@ void writeFile(fs::FS &fs, const char * path, const char * message){
   file.close();
 }
 
-void sdSaveConf(fs::FS &fs, const char * path)
+void sdSaveConf(fs::FS &fs, const char * path, const char * spiffspath)
 {
-  File spifsfile = SPIFFS.open("/config.txt");
+  File spifsfile = SPIFFS.open(spiffspath);
       if(!spifsfile){
       Serial.println("Failed to open file");
         }
@@ -99,10 +99,10 @@ void sdSaveConf(fs::FS &fs, const char * path)
       Serial.println("Settings saved!");
 }
 
-bool sdLoadConf(fs::FS &fs, const char * path)
+bool sdLoadConf(fs::FS &fs, const char * path, const char * spiffspath)
 {
-  SPIFFS.remove("/config.txt"); 
-  File spifsfile = SPIFFS.open("/config.txt", FILE_WRITE);
+  SPIFFS.remove(spiffspath); 
+  File spifsfile = SPIFFS.open(spiffspath, FILE_WRITE);
       if(!spifsfile){
       Serial.println("Failed to open file");
       return false;

@@ -31,7 +31,7 @@ char *url[76] = {  // url*Station name
   "http://icecast.newradio.cdnvideo.ru/newradio3*Новое Радио",
   "http://listen1.myradio24.com:9000/8234*Отличное Радио",
   "http://16bitfm.com:8000/cafe_mp3_320*Радио 16Bit.FM - Cafe",
-  "http://16bitfm.com:8000/extra_mp3_128*	Радио 16Bit.FM - Extra",
+  "http://16bitfm.com:8000/extra_mp3_128*Радио 16Bit.FM - Extra",
   "http://listen.181fm.com/181-classical_128k.mp3*181 F M Classical",
   "http://16bitfm.com:8000/idea_mp3_320*Радио 16Bit.FM - I.D.E.A.",
   "http://16bitfm.com:8000/main_mp3_320*Радио 16Bit.FM - ProBeat",

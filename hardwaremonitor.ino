@@ -15,9 +15,12 @@ void hardwareMonitor()
       if (httpCode > 0) {
         Serial.println(httpCode);
         //Зажигаем зеленый светодиод при удачном выполнении запроса
+  if (ledindicator)
+  {
   ledcWrite(1, 255);
   ledcWrite(2, 200);
   ledcWrite(3, 255);
+  }
  /*StaticJsonDocument<400> filter;
 JsonObject filter_Children_0_Children_0 = filter["Children"][0]["Children"].createNestedObject();
 //filter_Children_0_Children_0["Text"] = true;
@@ -39,28 +42,39 @@ JsonObject filter_Children_0_Children_0_Children_0 = filter_Children_0_Children_
 filter_Children_0_Children_0_Children_0["Children"][0]["Value"] = true;
 filter_Children_0_Children_0_Children_0["Children"][1]["Value"] = true;
 filter_Children_0_Children_0_Children_0["Children"][10]["Value"] = true;
-JsonObject filter_Children_0_Children_0_Children_0_Children_0 = filter_Children_0_Children_0_Children_0["Children"].createNestedObject();
+//JsonObject filter_Children_0_Children_0_Children_0_Children_0 = filter_Children_0_Children_0_Children_0["Children"].createNestedObject();
 //filter_Children_0_Children_0_Children_0_Children_0["Value"] = true;
 //5 уровень вложенности. Уточнение к параметру
 //JsonObject extraparams = filter_Children_0_Children_0_Children_0_Children_0["Children"].createNestedObject();
 //extraparams["Value"] = true;
-
-DynamicJsonDocument hwm(8000);
+//String response=http.getString();
+//Serial.println(response);
+//StaticJsonDocument<6500> hwm;
+Serial.println(filter.memoryUsage());
+DynamicJsonDocument hwm(6200);
 DeserializationError error = deserializeJson(hwm, http.getStream(), DeserializationOption::Filter(filter), DeserializationOption::NestingLimit(12));
   if (error) {
       String errorStr = error.c_str();
       Serial.print ("Hardware parsing: ");
       Serial.println(errorStr);
       //Зажигаем красный светодиод при ошибке
+      if (ledindicator)
+      {
       ledcWrite(1, 200);
       ledcWrite(2, 255);
       ledcWrite(3, 255);
+      }   
     }
     else
     {
-     ledcWrite(1, 255);
+      
+      if (ledindicator)
+      {
+      ledcWrite(1, 255);
       ledcWrite(2, 255);
-     ledcWrite(3, 200); 
+      ledcWrite(3, 200);
+      } 
+  hwm.shrinkToFit();
   Serial.println(hwm.memoryUsage());
    /*структура файла довольно таки большая и сложная, со множеством вложенных списков и ветвлений, но в целом разобраться можно
     ["Children"][0]["Children"][1] - разлчиные параметры процессора
@@ -166,15 +180,20 @@ lv_meter_set_indicator_end_value(cpumeter, cpu_indic, cpuLoad.toInt());
 lv_meter_set_indicator_end_value(cpumeter, cputemp_indic, cpuTempPackage.toInt());
 lv_meter_set_indicator_end_value(gpumeter, gpu_indic, gpuLoad.toInt());
 lv_meter_set_indicator_end_value(gpumeter, gputemp_indic, gpuHotSpot.toInt());*/
+hwm.garbageCollect();
+Serial.println(hwm.memoryUsage());
   }
       }
   else
     {
     Serial.println("http.GET() == 0");
     //Зажигаем красный светодиод при ошибке
+      if (ledindicator)
+      {
       ledcWrite(1, 200);
       ledcWrite(2, 255);
       ledcWrite(3, 255);
+      }
   }
   http.end();
       

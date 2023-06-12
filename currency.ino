@@ -34,16 +34,22 @@ if (error) {
   Serial.print("deserializeJson() failed: ");
   Serial.println(error.c_str());
   //Зажигаем красный светодиод при ошибке
+  if (ledindicator)
+  {
   ledcWrite(1, 200);
   ledcWrite(2, 255);
   ledcWrite(3, 255);
+  }
 }
 else
 { 
   //Зажигаем синий светодиод при удачном парсинге JSON
+  if (ledindicator)
+  {
   ledcWrite(1, 255);
   ledcWrite(2, 255);
   ledcWrite(3, 200);
+  }
 JsonArray securities_data = doc["securities"]["data"];
 for (byte i=0;i<9;i++)
 {
@@ -60,10 +66,12 @@ lv_table_set_cell_value(cur_table, i+1, 1, val.c_str());
     Serial.print("Error code: ");
     Serial.println(httpResponseCode);
     //Зажигаем красный светодиод при ошибке
+    if (ledindicator)
+    {
     ledcWrite(1, 200);
     ledcWrite(2, 255);
     ledcWrite(3, 255);
-
+    }
   }
   https.end();                         // Освобождаем ресурсы и закрываем соединение
 }

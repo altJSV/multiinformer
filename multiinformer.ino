@@ -75,6 +75,7 @@
   bool refresh_playlist = true; //Признак обновления плейлиста
   bool playlist_edit=false; //плейлист находится в режиме редактирования
   String tempout="";
+  //tempout.reserve(160);
   u_int16_t param; //параметр передаваемой редактируемой строки и столбца плейлиста
 //Календарь
   uint8_t lastday=1; //здесь хранится значение предыдущего дня при смене даты. Необходимо для обновления массива дат праздников календаря
@@ -83,6 +84,7 @@
   bool photosensor = false; //использовать фоторезистор
   bool usesensor = true; //Использовать датчик температуры
   //uint8_t sensortype = 1; //тип датчика 0 - bmp280, 1 - bme280, 2 - bme680, 
+  bool ledindicator = true; //Включение или отключение rgb светодиода 
 
 //Переменные конфигурации дисплея
   static const uint16_t screenWidth  = 480; //ширина экрана
@@ -90,16 +92,14 @@
   //Подсветка дисплея
   uint8_t bright_level=250; //яркость подсветки экрана
 
-//управление RGB светодиодами
-    //uint8_t red_level=254; //яркость красного
-    //uint8_t green_level=255; //яркость зеленого
-    //uint8_t blue_level=255; //яркость синего
+
   
 //Значения различных таймеров
     uint32_t refpcinterval=3000;//Обновление парметров ПК 3 секунды
     uint32_t refweatherinterval=300000;//Погода 5 минут
     uint32_t refsensorinterval=5000;//получение данных с сенсора 5 секунд
-  
+//Предварительная инициализация json для монитора ПК
+//StaticJsonDocument<8000> hwm;  
 //служебные переменные для анимаций
     u_int8_t prev_cpu_usage=0;//предыдущее значение загрузки проца
     u_int8_t prev_gpu_usage=0;//предыдущее значение загрузки видео
@@ -125,13 +125,13 @@
 
 
 //Создание указателей для LVGL
-  static lv_disp_draw_buf_t draw_buf;
-  static lv_color_t buf[screenWidth * screenHeight / 8];
-  static lv_obj_t * wifistatus; //статус wifi
-  static lv_obj_t * ui_status_clock; //Часы в статус баре
-  static lv_obj_t * tabview; //Вкладки
+    static lv_disp_draw_buf_t draw_buf;
+    static lv_color_t buf[screenWidth * screenHeight / 8];
+    static lv_obj_t * wifistatus; //статус wifi
+    static lv_obj_t * ui_status_clock; //Часы в статус баре
+    static lv_obj_t * tabview; //Вкладки
   
-  //Экраны
+    //Экраны
     //1 экран
     static lv_obj_t * statusbox;//служебные сообщения на 1 вкладке
     static lv_obj_t * displayclock;//часы
@@ -221,6 +221,7 @@
     static lv_obj_t * pc_int_slider_label;
     static lv_obj_t * bme_int_slider_label;
     static lv_obj_t * gmt_slider_label;
+    static lv_obj_t * wifitable;
 
 
 
@@ -228,9 +229,10 @@
 //Инициализация аудио библиотеки
   SPIClass SDSPI(VSPI);
   Audio audio(true, I2S_DAC_CHANNEL_LEFT_EN);
-  //Инициализация BME датчика
+//Инициализация BME датчика
   Adafruit_BME680 bme;
-
+//Инициализация Wifi Manager  
+  WiFiManager wm;
 //Инициализации библиотек и переферии
   //инициализация библиотеки TFT_eSPI
   TFT_eSPI tft = TFT_eSPI();  
@@ -246,6 +248,8 @@
   GTimer refsensor(MS);//обновление внешнего датчика температуры
   GTimer refbright(MS);//обновление датчика яркости света
   GTimer refvisualiser(MS);//обновление массива визуализации
+
+
 
 //Служебные функции
 //Здесь напишем функцию для вывода содержимого буфера на экран
@@ -314,12 +318,29 @@
   {
     uint16_t acttab=lv_tabview_get_tab_act(set_tabview);
     if(lv_event_get_code(e) == LV_EVENT_VALUE_CHANGED) {
-        
-        if (acttab==1) {
+        //Настройки Wifi
+        if (acttab==1) 
+        {
+         lv_table_set_cell_value_fmt(wifitable,1,1,"%s",WiFi.status() == WL_CONNECTED ? "Подключен" : "Не подключен");
+         if (WiFi.status() == WL_CONNECTED)
+         {
+            lv_table_set_cell_value_fmt(wifitable,2,1,"%s",WiFi.SSID().c_str());
+            lv_table_set_cell_value_fmt(wifitable,3,1,"%s",WiFi.localIP().toString().c_str());
+            uint8_t macAddr[6];
+            WiFi.macAddress(macAddr);
+            lv_table_set_cell_value_fmt(wifitable,4,1,"%02x:%02x:%02x:%02x:%02x:%02x",macAddr[0], macAddr[1], macAddr[2], macAddr[3], macAddr[4], macAddr[5]);
+            lv_table_set_cell_value_fmt(wifitable,5,1,"%s",WiFi.getHostname());
+            lv_table_set_cell_value_fmt(wifitable,6,1,"%d дБм",WiFi.RSSI());
+            lv_table_set_cell_value_fmt(wifitable,7,1,"%s",WiFi.gatewayIP().toString().c_str());
+            
+         } 
+        }
+        //Настройки ПК
+        if (acttab==2) {
             lv_keyboard_set_textarea(kb, pc_ta);
           }
-          
-        if (acttab==2) {
+        //Настройки погоды  
+        if (acttab==3) {
             lv_keyboard_set_textarea(kb, wt_ta);
           }
     }
@@ -375,13 +396,15 @@
   static void radio_ta_event_cb(lv_event_t * e)
   {
   lv_obj_t * textarea = lv_event_get_target(e);
+  tempout="";
   uint16_t row=param/100;
   Serial.println(row);
   uint16_t col=param%100;
   Serial.println(col);
   lv_table_set_cell_value(playlist_table, row, col, lv_textarea_get_text(textarea));
-  tempout="";
-  tempout=String(lv_table_get_cell_value(playlist_table,row,1))+"*"+String(lv_table_get_cell_value(playlist_table,row,0));
+  tempout+=String(lv_table_get_cell_value(playlist_table,row,1));
+  tempout+="*";
+  tempout+=String(lv_table_get_cell_value(playlist_table,row,0));
   url[row-1]=&tempout[0];
   //strcpy(*url[row-1],out);
   Serial.println(url[row-1]); 
@@ -410,9 +433,8 @@
     saveconf=true;
   }
 //Обработка выбора часового пояса
-
-static void ui_dd_ntp_server_event(lv_event_t * e)
-{
+  static void ui_dd_ntp_server_event(lv_event_t * e)
+  {
     lv_obj_t * obj = lv_event_get_target(e);
     
         char buf[32];
@@ -421,7 +443,7 @@ static void ui_dd_ntp_server_event(lv_event_t * e)
         ntp.setHost(ntpserver);
         saveconf=true;
     
-}   
+  }   
 //Обработка изменения значения слайдера интервала обновления пк информера
   static void slider_pcint_event_cb(lv_event_t * e)
   {
@@ -508,6 +530,23 @@ static void ui_dd_ntp_server_event(lv_event_t * e)
     }
   saveconf=true;  
   }
+//включение и выключение led индикатора
+  static void rgb_indic_switch_event(lv_event_t * e)
+  {
+    lv_event_code_t code = lv_event_get_code(e);
+    lv_obj_t * obj = lv_event_get_target(e);
+    if(code == LV_EVENT_VALUE_CHANGED) {
+        if (lv_obj_has_state(obj, LV_STATE_CHECKED)) 
+        {
+          ledindicator=true;
+        }
+        else
+        {
+          ledindicator=false;
+        }
+    }
+  saveconf=true;  
+  }  
 
 //Изменение цветого оформления таблицы вылют
   static void draw_table_part_event_cb(lv_event_t * e)
@@ -622,7 +661,7 @@ static void ui_dd_ntp_server_event(lv_event_t * e)
     }
   }
 //Громкость вниз
- void radio_volume_down(lv_event_t * e)//громкость-
+  void radio_volume_down(lv_event_t * e)//громкость-
   {
     lv_event_code_t code = lv_event_get_code(e);
 
@@ -644,7 +683,7 @@ static void ui_dd_ntp_server_event(lv_event_t * e)
     audio.setVolume(vol);
   }
 //Канал вперед
- void radio_chanel_up(lv_event_t * e) //громкость+
+  void radio_chanel_up(lv_event_t * e) //громкость+
   {
     lv_event_code_t code = lv_event_get_code(e);
 
@@ -667,7 +706,7 @@ static void ui_dd_ntp_server_event(lv_event_t * e)
     } 
   }
 //Канал назад
- void radio_chanel_down(lv_event_t * e)//громкость-
+  void radio_chanel_down(lv_event_t * e)//громкость-
   {
     lv_event_code_t code = lv_event_get_code(e);
 
@@ -690,7 +729,7 @@ static void ui_dd_ntp_server_event(lv_event_t * e)
           }
   }
 //запуск воспроизведения
- void radio_play_btn_press(lv_event_t * e)//громкость-
+  void radio_play_btn_press(lv_event_t * e)//громкость-
   {
     lv_event_code_t code = lv_event_get_code(e);
     lv_obj_t * imgbtn = lv_event_get_target(e);
@@ -802,11 +841,11 @@ static void ui_dd_ntp_server_event(lv_event_t * e)
     
   } 
 //Перезагрузка ESP32
-void esp_restart_event(lv_event_t * e)
-{
+  void esp_restart_event(lv_event_t * e)
+  {
     lv_obj_t * obj = lv_event_get_current_target(e);
     if (lv_msgbox_get_active_btn(obj)==0) ESP.restart();
-}    
+  }    
 //Кнопка сохранения настроек на Sd карту
   void sd_settings_save_event(lv_event_t * e)
     {
@@ -815,7 +854,7 @@ void esp_restart_event(lv_event_t * e)
       }
       else
       {
-        sdSaveConf(SD, "/confbackup.txt");
+        sdSaveConf(SD, "/confbackup.txt", "/config.txt");
         SD.end();
       }
     }
@@ -829,10 +868,24 @@ void esp_restart_event(lv_event_t * e)
       }
       else
       {
-        result=sdLoadConf(SD, "/confbackup.txt");
+        result=sdLoadConf(SD, "/confbackup.txt", "/config.txt");
         SD.end();  
       }
     }
+
+//Запуск WifiManager
+  void button_set_wifimanager_event (lv_event_t * e)
+    {
+      if (!wm.startConfigPortal("Multiinformer")) {
+        Serial.println("failed to connect or hit timeout");
+        //delay(3000);
+        // ESP.restart();
+      } else {
+        //if you get here you have connected to the WiFi
+        Serial.println("connected...)");
+      }
+    } 
+
 //инициализация LVGL и создание всех объектов
 void lvlg_create()
 {
@@ -856,7 +909,7 @@ void lvlg_create()
 //Создаем экранные объекты
  static lv_style_t bigtext;
     lv_style_init(&bigtext);
-    lv_style_set_text_font(&bigtext, &fira28);       
+    lv_style_set_text_font(&bigtext, &fira24);       
 
  static lv_style_t style_indic;
     lv_style_init(&style_indic);
@@ -1005,10 +1058,10 @@ Serial.println("2 screen");
   lv_obj_set_style_text_color(cpu_temp_label,lv_palette_main(LV_PALETTE_RED),0);
   cpu_fan_label = lv_label_create(cpumeter); //
   lv_obj_align(cpu_fan_label, LV_ALIGN_CENTER, 40, 60); //положение на экране
-  lv_obj_set_style_text_color(cpu_fan_label,lv_palette_main(LV_PALETTE_YELLOW),0);
+  lv_obj_set_style_text_color(cpu_fan_label,lv_palette_main(LV_PALETTE_ORANGE),0);
   lv_obj_t *ui_cpuname= lv_label_create(cpumeter);
   lv_obj_align(ui_cpuname, LV_ALIGN_CENTER, 0, 0); //положение на экране
-  lv_obj_set_style_text_font(ui_cpuname, &fira28, 0);
+  lv_obj_set_style_text_font(ui_cpuname, &fira24, 0);
   lv_label_set_text(ui_cpuname, "CPU");
 
   //Монитор видеокарты
@@ -1041,7 +1094,7 @@ Serial.println("2 screen");
   lv_obj_set_style_text_color(gpu_fan_label,lv_palette_main(LV_PALETTE_YELLOW),0);
   lv_obj_t *ui_gpuname= lv_label_create(gpumeter);
   lv_obj_align(ui_gpuname, LV_ALIGN_CENTER, 0, 0); //положение на экране
-  lv_obj_set_style_text_font(ui_gpuname, &fira28, 0);
+  lv_obj_set_style_text_font(ui_gpuname, &fira24, 0);
   lv_label_set_text(ui_gpuname, "GPU");
 
     //Иницализация анимации
@@ -1139,12 +1192,12 @@ Serial.println("3 screen");
   ui_weathertemp = lv_label_create(tab3);
   lv_obj_set_pos(ui_weathertemp, 155, 30);
   lv_label_set_text(ui_weathertemp,"1.0");
-  lv_obj_set_style_text_font(ui_weathertemp, &fira28, LV_PART_MAIN| LV_STATE_DEFAULT);
+  lv_obj_set_style_text_font(ui_weathertemp, &fira24, LV_PART_MAIN| LV_STATE_DEFAULT);
   //Влажность
   ui_humid = lv_label_create(tab3);
   lv_obj_set_pos(ui_humid, 250, 30);
   lv_label_set_text(ui_humid,"55%");
-  lv_obj_set_style_text_font(ui_humid, &fira28, LV_PART_MAIN| LV_STATE_DEFAULT);
+  lv_obj_set_style_text_font(ui_humid, &fira24, LV_PART_MAIN| LV_STATE_DEFAULT);
   //Мин и макст температура
   ui_avgtemp = lv_label_create(tab3);
   lv_obj_set_pos(ui_avgtemp, 155, 80);
@@ -1385,15 +1438,16 @@ Serial.println("3 screen");
    //Создаем категории настроек
     set_tabview = lv_tabview_create(tab7, LV_DIR_LEFT, 80);
         lv_obj_t * settab1 = lv_tabview_add_tab(set_tabview, "Основные");
+        lv_obj_t * settab6 = lv_tabview_add_tab(set_tabview, "WiFi");
         lv_obj_t * settab2 = lv_tabview_add_tab(set_tabview, "Монитор ПК");
         lv_obj_t * settab3 = lv_tabview_add_tab(set_tabview, "Погода");
         lv_obj_t * settab4 = lv_tabview_add_tab(set_tabview, "Датчик BME");
         lv_obj_t * settab5 = lv_tabview_add_tab(set_tabview, "SD карта");
-        lv_obj_add_event_cb(set_tabview, change_tab_event, LV_EVENT_ALL, NULL);//смена активной вкладки
+        lv_obj_add_event_cb(set_tabview, change_settings_tab_event, LV_EVENT_ALL, NULL);//смена активной вкладки
   //1 вкладка настроек Основные
   //Настройки дисплея
   lv_obj_t * settingspanel1 = lv_obj_create(settab1);
-  lv_obj_set_size(settingspanel1, 342,LV_SIZE_CONTENT);
+  lv_obj_set_size(settingspanel1, 340,125);
   lv_obj_t  * ui_label_set_cat_display = lv_label_create(settingspanel1); //создаем объект заголовок
   lv_label_set_text(ui_label_set_cat_display, "Дисплей"); //сам текст для надписи
   lv_obj_align(ui_label_set_cat_display, LV_ALIGN_TOP_MID, 0, 0); //положение на экране  
@@ -1421,7 +1475,7 @@ Serial.println("3 screen");
   //Создаем слайдер изменения яркости
   lv_obj_t * slider_brightness = lv_slider_create(settingspanel1);
   lv_obj_align(slider_brightness, LV_ALIGN_TOP_LEFT, 0, 50);
-  lv_obj_set_width(slider_brightness,310);
+  lv_obj_set_width(slider_brightness,300);
   lv_slider_set_range(slider_brightness, 1 , 255);
   lv_slider_set_value(slider_brightness, bright_level, LV_ANIM_OFF);
   lv_obj_add_event_cb(slider_brightness, slider_brightness_event_cb, LV_EVENT_VALUE_CHANGED, NULL);
@@ -1430,10 +1484,27 @@ Serial.println("3 screen");
   lv_label_set_text_fmt(slider_label, "%d%", (int)lv_slider_get_value(slider_brightness));
   lv_obj_align_to(slider_label, slider_brightness, LV_ALIGN_CENTER, 0, 0);
 
+  lv_obj_t  * ui_label_change_rgb_ind = lv_label_create(settingspanel1); //создаем объект заголовок
+  lv_label_set_text(ui_label_change_rgb_ind, "RGB индикатор"); //сам текст для надписи
+  lv_obj_align(ui_label_change_rgb_ind, LV_ALIGN_TOP_LEFT, 0, 80); //положение на экране
+  //выключаетль автояркости
+  lv_obj_t * rgb_indic_switch = lv_switch_create(settingspanel1);
+  lv_obj_add_event_cb(rgb_indic_switch , rgb_indic_switch_event, LV_EVENT_ALL, NULL);
+  lv_obj_align(rgb_indic_switch , LV_ALIGN_TOP_RIGHT, 0, 80); //положение на экране
+  lv_obj_set_size(rgb_indic_switch ,32,16);
+  if (ledindicator)
+    {
+      lv_obj_add_state(rgb_indic_switch , LV_STATE_CHECKED); 
+    }
+    else
+    {
+      lv_obj_clear_state(rgb_indic_switch , LV_STATE_CHECKED);
+    }
+
   //Настройки NTP
   lv_obj_t * settingspanel2 = lv_obj_create(settab1);
-    lv_obj_set_size(settingspanel2, 346,LV_SIZE_CONTENT);
-    lv_obj_set_pos(settingspanel2, 0, lv_obj_get_height(settingspanel1)+10);
+    lv_obj_set_size(settingspanel2, 340,LV_SIZE_CONTENT);
+    lv_obj_set_pos(settingspanel2, 0, 135);
   lv_obj_t  * ui_label_set_cat_time = lv_label_create(settingspanel2); //создаем объект заголовок
   lv_label_set_text(ui_label_set_cat_time, "NTP"); //сам текст для надписи
   lv_obj_align(ui_label_set_cat_time, LV_ALIGN_TOP_MID, 0, 0); //положение на экране
@@ -1450,7 +1521,7 @@ Serial.println("3 screen");
                             "ntp2.stratum2.ru\n"
                             "ntp.msk-ix.ru");
     lv_obj_align_to(ui_dd_ntp_server, ui_label_ntp_server, LV_ALIGN_OUT_RIGHT_MID, 5, 0);
-    lv_obj_set_width(ui_dd_ntp_server,250);
+    lv_obj_set_width(ui_dd_ntp_server,240);
     lv_dropdown_set_selected(ui_dd_ntp_server, lv_dropdown_get_option_index(ui_dd_ntp_server, ntpserver));
     lv_obj_add_event_cb(ui_dd_ntp_server, ui_dd_ntp_server_event, LV_EVENT_VALUE_CHANGED, NULL);
   
@@ -1460,7 +1531,7 @@ Serial.println("3 screen");
 
   lv_obj_t * slider_gmt = lv_slider_create(settingspanel2);
   lv_obj_align(slider_gmt, LV_ALIGN_TOP_LEFT, 0, 100);
-  lv_obj_set_width(slider_gmt,310);
+  lv_obj_set_width(slider_gmt,300);
   lv_slider_set_range(slider_gmt, -12 , 14);
   lv_slider_set_value(slider_gmt, gmt, LV_ANIM_OFF);
   lv_obj_add_event_cb(slider_gmt, slider_gmt_event_cb, LV_EVENT_VALUE_CHANGED, NULL);
@@ -1471,7 +1542,7 @@ Serial.println("3 screen");
   
   //2 вкладка настроек ПК монитор
  lv_obj_t * pc_settingspanel1 = lv_obj_create(settab2);
-  lv_obj_set_size(pc_settingspanel1, 342,LV_SIZE_CONTENT);
+  lv_obj_set_size(pc_settingspanel1, 340,LV_SIZE_CONTENT);
  
  lv_obj_t  * ui_label_pc_server = lv_label_create(pc_settingspanel1); //создаем объект заголовок
   lv_label_set_text(ui_label_pc_server, "Адрес сервера:"); //сам текст для надписи
@@ -1480,7 +1551,7 @@ Serial.println("3 screen");
  pc_ta = lv_textarea_create(pc_settingspanel1);
     lv_textarea_set_one_line(pc_ta, true);
     lv_obj_align(pc_ta, LV_ALIGN_TOP_LEFT, 0, 20);
-     lv_obj_set_width(pc_ta,310);
+     lv_obj_set_width(pc_ta,300);
      lv_textarea_set_text(pc_ta, pc_server_path.c_str());
      lv_obj_add_event_cb(pc_ta, ta_event_cb, LV_EVENT_ALL, kb);
      lv_obj_add_event_cb(pc_ta, pc_ta_event_cb, LV_EVENT_READY, NULL);
@@ -1492,7 +1563,7 @@ Serial.println("3 screen");
   //Создаем слайдер изменения обновления
   lv_obj_t * slider_pc_int = lv_slider_create(pc_settingspanel1);
   lv_obj_align(slider_pc_int, LV_ALIGN_TOP_LEFT, 0, 100);
-  lv_obj_set_width(slider_pc_int,310);
+  lv_obj_set_width(slider_pc_int,300);
   lv_slider_set_range(slider_pc_int, 1 , 60);
   lv_slider_set_value(slider_pc_int, refpcinterval/1000, LV_ANIM_OFF);
   lv_obj_add_event_cb(slider_pc_int, slider_pcint_event_cb, LV_EVENT_VALUE_CHANGED, NULL);
@@ -1503,7 +1574,7 @@ Serial.println("3 screen");
 
   //3 вкладка настроек Погода
   lv_obj_t * wt_settingspanel1 = lv_obj_create(settab3);
-  lv_obj_set_size(wt_settingspanel1, 342,LV_SIZE_CONTENT);
+  lv_obj_set_size(wt_settingspanel1, 340,LV_SIZE_CONTENT);
   
   lv_obj_t  * ui_label_weather_api = lv_label_create(wt_settingspanel1); //создаем объект заголовок
   lv_label_set_text(ui_label_weather_api, "OpenWeatherMap API ключ:"); //сам текст для надписи
@@ -1512,7 +1583,7 @@ Serial.println("3 screen");
  wt_ta = lv_textarea_create(wt_settingspanel1);
     lv_textarea_set_one_line(wt_ta, true);
     lv_obj_align(wt_ta, LV_ALIGN_TOP_LEFT, 0, 20);
-     lv_obj_set_width(wt_ta,310);
+     lv_obj_set_width(wt_ta,300);
      lv_textarea_set_text(wt_ta, api_key.c_str());
      lv_obj_add_event_cb(wt_ta, ta_event_cb, LV_EVENT_ALL, kb);
      lv_obj_add_event_cb(wt_ta, wt_ta_event_cb, LV_EVENT_READY, NULL);
@@ -1524,7 +1595,7 @@ Serial.println("3 screen");
  wtl_ta = lv_textarea_create(wt_settingspanel1);
     lv_textarea_set_one_line(wtl_ta, true);
     lv_obj_align(wtl_ta, LV_ALIGN_TOP_LEFT, 0, 90);
-     lv_obj_set_width(wtl_ta,310);
+     lv_obj_set_width(wtl_ta,300);
      lv_textarea_set_text(wtl_ta, qLocation.c_str());
      lv_obj_add_event_cb(wtl_ta, ta_event_cb, LV_EVENT_ALL, kb);
      lv_obj_add_event_cb(wtl_ta, wtl_ta_event_cb, LV_EVENT_READY, NULL);    
@@ -1536,7 +1607,7 @@ Serial.println("3 screen");
   //Создаем слайдер изменения обновления
   lv_obj_t * slider_weather_int = lv_slider_create(wt_settingspanel1);
   lv_obj_align(slider_weather_int, LV_ALIGN_TOP_LEFT, 0, 170);
-  lv_obj_set_width(slider_weather_int,310);
+  lv_obj_set_width(slider_weather_int,300);
   lv_slider_set_range(slider_weather_int, 1 , 600);
   lv_slider_set_value(slider_weather_int, refweatherinterval/1000, LV_ANIM_OFF);
   lv_obj_add_event_cb(slider_weather_int, slider_weatherint_event_cb, LV_EVENT_VALUE_CHANGED, NULL);
@@ -1549,7 +1620,7 @@ Serial.println("3 screen");
   
   //4 вкладка настроек. Датчик BME 
     lv_obj_t * bme_settingspanel1 = lv_obj_create(settab4);
-    lv_obj_set_size(bme_settingspanel1, 342,LV_SIZE_CONTENT);
+    lv_obj_set_size(bme_settingspanel1, 340,LV_SIZE_CONTENT);
     
     lv_obj_t  * ui_label_bme_use = lv_label_create(bme_settingspanel1); //создаем объект заголовок
     lv_label_set_text(ui_label_bme_use, "Использовать датчик температуры"); //сам текст для надписи
@@ -1568,7 +1639,7 @@ Serial.println("3 screen");
     //Создаем слайдер изменения обновления
     lv_obj_t * slider_bme_int = lv_slider_create(bme_settingspanel1);
     lv_obj_align(slider_bme_int, LV_ALIGN_TOP_LEFT, 0, 60);
-    lv_obj_set_width(slider_bme_int,310);
+    lv_obj_set_width(slider_bme_int,300);
     lv_slider_set_range(slider_bme_int, 1 , 60);
     lv_slider_set_value(slider_bme_int, refsensorinterval/1000, LV_ANIM_OFF);
     lv_obj_add_event_cb(slider_bme_int, slider_bmeint_event_cb, LV_EVENT_VALUE_CHANGED, NULL);
@@ -1579,10 +1650,10 @@ Serial.println("3 screen");
 
   //5 вкладка настроек sd карта
     lv_obj_t * sd_settingspanel1 = lv_obj_create(settab5);
-    lv_obj_set_size(sd_settingspanel1, 342,LV_SIZE_CONTENT);
+    lv_obj_set_size(sd_settingspanel1, 340,LV_SIZE_CONTENT);
     //Заголовок панели
     lv_obj_t  * ui_label_set_cat_sdsave = lv_label_create(sd_settingspanel1); //создаем объект заголовок
-    lv_label_set_text(ui_label_set_cat_sdsave , "Сохранение/загрузка настроек с SD карты"); //сам текст для надписи
+    lv_label_set_text(ui_label_set_cat_sdsave , "Запись/загрузка настроек с SD карты"); //сам текст для надписи
     lv_obj_align(ui_label_set_cat_sdsave , LV_ALIGN_TOP_MID, 0, 0); //положение на экране
     
     //Кнопки
@@ -1605,7 +1676,7 @@ Serial.println("3 screen");
     
     //Панель сохранения плейлиста на sd карту
     lv_obj_t * sd_settingspanel2 = lv_obj_create(settab5);
-    lv_obj_set_size(sd_settingspanel2, 342,LV_SIZE_CONTENT);
+    lv_obj_set_size(sd_settingspanel2, 340,LV_SIZE_CONTENT);
     lv_obj_set_pos(sd_settingspanel2, 0, 170);
     //Заголовок панели
     lv_obj_t  * ui_label_set_cat_playlist_save = lv_label_create(sd_settingspanel2); //создаем объект заголовок
@@ -1625,7 +1696,37 @@ Serial.println("3 screen");
     lv_obj_t * ui_button_label_set_playlistload = lv_label_create(ui_button_set_playlistload);
     lv_label_set_text(ui_button_label_set_playlistload, "Загрузить");
     lv_obj_center(ui_button_label_set_playlistload);
-    
+  //Экран настроек WiFi
+  lv_obj_t * wifi_settingspanel1 = lv_obj_create(settab6);
+  lv_obj_set_size(wifi_settingspanel1, 340,LV_SIZE_CONTENT);
+  //Заголовок панели
+    lv_obj_t  * ui_label_set_cat_wifi_set = lv_label_create(wifi_settingspanel1); //создаем объект заголовок
+    lv_label_set_text(ui_label_set_cat_wifi_set , "Настройки WiFi"); //сам текст для надписи
+    lv_obj_align(ui_label_set_cat_wifi_set , LV_ALIGN_TOP_MID, 0, 0); //положение на экране 
+    wifitable = lv_table_create(wifi_settingspanel1);
+    lv_obj_set_width(wifitable, 300);
+    lv_obj_add_event_cb(wifitable, draw_table_part_event_cb, LV_EVENT_DRAW_PART_BEGIN, NULL);
+        lv_obj_set_pos(wifitable, 0, 20);
+        lv_table_set_col_cnt(wifitable, 2);
+        lv_table_set_col_width(wifitable, 0, 100);
+        lv_table_set_col_width(wifitable, 1, 200);
+        lv_table_set_cell_value(wifitable, 0, 0, "Параметр");
+        lv_table_set_cell_value(wifitable, 0, 1, "Значение");
+        lv_table_set_cell_value(wifitable, 1, 0, "Подключение");
+        lv_table_set_cell_value(wifitable, 2, 0, "SSID");
+        lv_table_set_cell_value(wifitable, 3, 0, "IP");
+        lv_table_set_cell_value(wifitable, 4, 0, "MAC");
+        lv_table_set_cell_value(wifitable, 5, 0, "Хост");
+        lv_table_set_cell_value(wifitable, 6, 0, "Сигнал");
+        lv_table_set_cell_value(wifitable, 7, 0, "Шлюз");
+//Кнопки
+    lv_obj_t * ui_button_set_wifimanager = lv_btn_create(wifi_settingspanel1);
+    lv_obj_add_event_cb(ui_button_set_wifimanager, button_set_wifimanager_event, LV_EVENT_CLICKED, NULL);
+    lv_obj_align_to(ui_button_set_wifimanager, wifitable, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 10);
+    lv_obj_t * ui_button_label_button_set_wifimanager = lv_label_create(ui_button_set_wifimanager);
+    lv_label_set_text(ui_button_label_button_set_wifimanager, "Запуск Wifi менеджера");
+    lv_obj_center(ui_button_label_button_set_wifimanager);
+
 }
 
 
@@ -1692,6 +1793,11 @@ void setup()
    
   //createDir(SD, "/mydir");
   listDir(SD, "/", 0);
+  if (SD.exists("/playlist.txt")) 
+    {
+      sdLoadConf(SD, "/playlist.txt", "/playlist.txt");
+      SD.remove("/playlist.txt");
+      listDir(SPIFFS, "/", 0);}
   //writeFile(SD, "/hello.txt", "Hello ");
   //appendFile(SD, "/hello.txt", "World!\n");
   //readFile(SD, "/hello.txt");
@@ -1709,8 +1815,7 @@ Serial.println("wifi start");
 //подключение к WiFi
 //Инициализируем WiFiManager. При первом запуске создает точку доступа "Multinformer". Подключитесь к ней по WiFi и настройте параметры подключения к сети 
   bool res;
-  WiFiManager wm;
-  res = wm.autoConnect("AutoConnectAP");
+  res = wm.autoConnect("Multiinformer");
   //Выводим IP на экран
   if (res)
   {
@@ -2141,12 +2246,12 @@ void loop()
   lv_label_set_text_fmt(roomhumid, LV_SYMBOL_HUMIDITY"%.1f%",bme.humidity);
   lv_label_set_text_fmt(roompress,LV_SYMBOL_PRESSURE"%dмм рт. ст.",bme.pressure/133,3);
   int airquality=bme.gas_resistance / 1000;
-  if (airquality<51) {lv_label_set_text_fmt(roomair,"Качество воздуха: Хорошее",airquality);ledcWrite(1, 255);ledcWrite(2, 128);ledcWrite(3, 255);}
-  if (airquality>50 && airquality<101) {lv_label_set_text_fmt(roomair,"Качество воздуха: Среднее",airquality);ledcWrite(1, 255);ledcWrite(2, 200);ledcWrite(3, 255);} 
-  if (airquality>100 && airquality<151) {lv_label_set_text_fmt(roomair,"Качество воздуха: Ниже среднего",airquality);ledcWrite(1, 225);ledcWrite(2, 225);ledcWrite(3, 255);} 
-  if (airquality>150 && airquality<201) {lv_label_set_text_fmt(roomair,"Качество воздуха: Плохое",airquality);ledcWrite(1, 225);ledcWrite(2, 165);ledcWrite(3, 255);} 
-  if (airquality>200 && airquality<301) {lv_label_set_text_fmt(roomair,"Качество воздуха: Очень плохое",airquality);ledcWrite(1, 200);ledcWrite(2, 255);ledcWrite(3, 255);} 
-  if (airquality>300) {lv_label_set_text_fmt(roomair,"Качество воздуха: Опасное",airquality);ledcWrite(1, 100);ledcWrite(2, 255);ledcWrite(3, 255);} 
+  if (airquality<51) {lv_label_set_text_fmt(roomair,"Качество воздуха: Хорошее",airquality);if (ledindicator){ledcWrite(1, 255);ledcWrite(2, 128);ledcWrite(3, 255);}}
+  if (airquality>50 && airquality<101) {lv_label_set_text_fmt(roomair,"Качество воздуха: Среднее",airquality);if (ledindicator){ledcWrite(1, 255);ledcWrite(2, 200);ledcWrite(3, 255);}} 
+  if (airquality>100 && airquality<151) {lv_label_set_text_fmt(roomair,"Качество воздуха: Ниже среднего",airquality);if (ledindicator){ledcWrite(1, 225);ledcWrite(2, 225);ledcWrite(3, 255);}} 
+  if (airquality>150 && airquality<201) {lv_label_set_text_fmt(roomair,"Качество воздуха: Плохое",airquality);if (ledindicator){ledcWrite(1, 225);ledcWrite(2, 165);ledcWrite(3, 255);}} 
+  if (airquality>200 && airquality<301) {lv_label_set_text_fmt(roomair,"Качество воздуха: Очень плохое",airquality);if (ledindicator){ledcWrite(1, 200);ledcWrite(2, 255);ledcWrite(3, 255);}} 
+  if (airquality>300) {lv_label_set_text_fmt(roomair,"Качество воздуха: Опасное",airquality);if (ledindicator){ledcWrite(1, 100);ledcWrite(2, 255);ledcWrite(3, 255);}} 
   lv_bar_set_value(roomair_bar,airquality/10, LV_ANIM_ON);
   lv_label_set_text_fmt(roomair_bar_label,"%d",airquality);
   }
