@@ -1846,7 +1846,7 @@ delay(1000);
 //запуск сервиса синхронизации времени
 uint8_t numtries=10;
 bool ntpstart=false;
- while (numtries>0 && ntpstart==0)
+ while (numtries>0 && ntpstart==false)
  {
 ntp.setGMT(gmt);
 bool ntpstart=ntp.begin();
@@ -2063,7 +2063,7 @@ Serial.println("photo start");
     //Всемирный день Донора
     highlighted_days[26].year = ntp.year();
     highlighted_days[26].month = 06;
-    highlighted_days[26].day = 12;
+    highlighted_days[26].day = 14;
     
     //Июньское солнцестояние
     highlighted_days[27].year = ntp.year();
