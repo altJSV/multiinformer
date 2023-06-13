@@ -309,6 +309,10 @@
         if (audio.isRunning())
           {
             audio.stopSong();
+            lv_imgbtn_set_src(imgbtn, LV_IMGBTN_STATE_RELEASED, NULL, &play, NULL);
+            refvisualiser.stop();
+            saveRadioConf("/radioconf.txt");
+            lv_chart_set_type(radio_visualiser, LV_CHART_TYPE_NONE);
           }  
     }
   }
