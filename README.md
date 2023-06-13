@@ -45,4 +45,5 @@ CONFIG_LWIP_TCP_WND_DEFAULT=32768
 CONFIG_LWIP_TCP_RECVMBOX_SIZE=32
 
 Настройте параметры платы Arduino IDE как на скриншоте ниже:
+
 [![Параметры платы](https://github.com/altJSV/multiinformer/blob/main/additional_info/board_config.png "Параметры платы")](https://github.com/altJSV/multiinformer/blob/main/additional_info/board_config.png "Параметры платы")
