@@ -17,7 +17,6 @@
   #include <Adafruit_Sensor.h>//универсальная библиотека для работы с различными сенсорами
   #include "Adafruit_BME680.h"//библиотека для работы с датчиком BME680
   #include "Audio.h" //ESP32 Audio I2S от ESPHome
-  #include "station.h" //список радиостанций
   #include <TFT_eSPI.h> //Работа с дисплеем
 
 //Определяем различные параметры устройств
@@ -70,6 +69,8 @@
 //Режим радио
   int sn = 1, vol = 5; //sn номер станции, vol громкость макс 20, un колличество станций в массива
   char URL[100], sta[50]; //URL и название станции
+  uint8_t un=0; //Колличество треков в плейлисте
+  String url="http://vladfm.ru:8000/vfm*Владивосток FM";
   bool rp = false; //проигрывается ли радио в данный момент
   bool refresh_playlist = true; //Признак обновления плейлиста
   bool playlist_edit=false; //плейлист находится в режиме редактирования
@@ -417,7 +418,7 @@
   tempout+=String(lv_table_get_cell_value(playlist_table,row,1));
   tempout+="*";
   tempout+=String(lv_table_get_cell_value(playlist_table,row,0));
-  url[row-1]=&tempout[0];
+  url=tempout;
   //strcpy(*url[row-1],out);
   Serial.println(url[row-1]); 
   lv_obj_del(textarea);
@@ -791,18 +792,26 @@
         //Добавляем таблицу плейлиста
         if (refresh_playlist)
         {
-        for (uint8_t i=0;i<=un;i++)
+        for (uint8_t i=1;i<=un;i++)
           {
             Serial.println(i);
+            String tempurl=playlistread(SPIFFS,"/playlist.txt",i);
+            if (tempurl!="Failed to open file for reading")
+              {
             char radio_url[100], radio_sta[50];
-            String u=String(url[i]).substring(0,String(url[i]).indexOf("*")+1);
+            String u=tempurl.substring(0,tempurl.indexOf("*")+1);
             u.toCharArray(radio_url,u.length());           // URL
-            String s=String(url[i]).substring(String(url[i]).indexOf("//")+2);
+            String s=tempurl.substring(tempurl.indexOf("//")+2);
             String n=s.substring(s.indexOf("*")+1)+1;
             n.toCharArray(radio_sta,n.length());           // название станции
             lv_table_set_cell_value(playlist_table, i+1, 0, radio_sta);
             lv_table_set_cell_value(playlist_table, i+1, 1, radio_url);
-            
+              }
+              else
+              {
+                lv_table_set_cell_value(playlist_table, i+1, 0, "Владивосток FM");
+                lv_table_set_cell_value(playlist_table, i+1, 1, "http://vladfm.ru:8000/vfm");
+              }
           }
           refresh_playlist=false;
         }
@@ -1768,6 +1777,24 @@ void setup()
         Serial.println("SPIFFS ready!");
         Serial.println("Reading config file...");
         loadConfiguration(filename);
+        listDir(SPIFFS, "/", 0);
+        Serial.println("Loading playlist info...");
+        un=playlistnumtrack(SPIFFS,"/playlist.txt");
+        if (un>0) 
+          {
+            Serial.printf("Found %d stations \n",un);
+            sn=1;
+            url=playlistread(SPIFFS,"/playlist.txt",sn);
+            Serial.printf("Current track: %s \n",url);
+          }
+          else
+          {
+             Serial.println("Stations not found");
+            un=1;
+            sn=1;
+            url="http://vladfm.ru:8000/vfm*Владивосток FM";
+            Serial.printf("Playing default station: %s \n",url);
+          }
         }  
 
  // Инициализация SD карты
