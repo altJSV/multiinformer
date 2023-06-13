@@ -809,8 +809,8 @@
               }
               else
               {
-                lv_table_set_cell_value(playlist_table, i+1, 0, "Владивосток FM");
-                lv_table_set_cell_value(playlist_table, i+1, 1, "http://vladfm.ru:8000/vfm");
+                lv_table_set_cell_value(playlist_table, i, 0, "Владивосток FM");
+                lv_table_set_cell_value(playlist_table, i, 1, "http://vladfm.ru:8000/vfm");
               }
           }
           refresh_playlist=false;
@@ -867,6 +867,31 @@
     lv_obj_t * obj = lv_event_get_current_target(e);
     if (lv_msgbox_get_active_btn(obj)==0) ESP.restart();
   }    
+//Сохранение плейлиста на sd карту
+void sd_settings_playlist_save_event(lv_event_t * e)
+    {
+      if(!SD.begin(5,SDSPI)){
+        Serial.println("Card Mount Failed");
+      }
+      else
+      {
+        sdSaveConf(SD, "/playlist.txt", "/playlist.txt");
+        SD.end();
+      }
+    }
+//Загрузка плейлиста с sd карты
+void sd_settings_playlist_save_event(lv_event_t * e)
+    {
+      bool result;
+      if(!SD.begin(5,SDSPI)){
+        Serial.println("Card Mount Failed");
+      }
+      else
+      {
+        result=sdLoadConf(SD, "/playlist.txt", "/playlist.txt");
+        SD.end();  
+      }
+    }
 //Кнопка сохранения настроек на Sd карту
   void sd_settings_save_event(lv_event_t * e)
     {
@@ -883,7 +908,6 @@
      void sd_settings_load_event(lv_event_t * e)
     {
       bool result;
-      lv_obj_t * mbox1;
       if(!SD.begin(5,SDSPI)){
         Serial.println("Card Mount Failed");
       }
@@ -1677,14 +1701,14 @@ Serial.println("3 screen");
     lv_obj_align(ui_label_set_cat_playlist_save , LV_ALIGN_TOP_MID, 0, 0); //положение на экране
     //Кнопки
     lv_obj_t * ui_button_set_playlistsave = lv_btn_create(sd_settingspanel2);
-    //lv_obj_add_event_cb(ui_button_set_playlistsave, event_handler, LV_EVENT_CLICKED, NULL);
+    lv_obj_add_event_cb(ui_button_set_playlistsave, sd_settings_playlist_save_event, LV_EVENT_CLICKED, NULL);
     lv_obj_align(ui_button_set_playlistsave , LV_ALIGN_TOP_MID, 0, 40);
     lv_obj_t * ui_button_label_set_playlistsave = lv_label_create(ui_button_set_playlistsave);
     lv_label_set_text(ui_button_label_set_playlistsave, "Сохранить");
     lv_obj_center(ui_button_label_set_playlistsave);
 
     lv_obj_t * ui_button_set_playlistload = lv_btn_create(sd_settingspanel2);
-    //lv_obj_add_event_cb(ui_button_set_playlistload, event_handler, LV_EVENT_CLICKED, NULL);
+    lv_obj_add_event_cb(ui_button_set_playlistload, sd_settings_playlist_load_event, LV_EVENT_CLICKED, NULL);
     lv_obj_align(ui_button_set_playlistload , LV_ALIGN_TOP_MID, 0, 90);
     lv_obj_t * ui_button_label_set_playlistload = lv_label_create(ui_button_set_playlistload);
     lv_label_set_text(ui_button_label_set_playlistload, "Загрузить");
