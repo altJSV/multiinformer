@@ -94,7 +94,7 @@ void saveConfiguration(const char *filename) {
 }
 
 String playlistread(fs::FS &fs, const char * path, uint16_t line) {
-  File file = LittleFS.open(path, "r");
+  File file = fs.open(path, "r");
   if (!file)  return F("Failed to open file for reading");
 
   while (file.available() && line > 1) {//Пропускаем лишние строки в количестве line-1.
@@ -109,4 +109,15 @@ String playlistread(fs::FS &fs, const char * path, uint16_t line) {
   };
   file.close();
   return read_text;
+}
+
+uint8_t playlistnumtrack(fs::FS &fs, const char * path) {
+  File file = fs.open(path, "r");
+  if (!file)  return 0;
+  uint8_t count=0;
+  while (file.available()) {//Пропускаем лишние строки в количестве line-1.
+    count += file.read() == '\n';
+  };
+  file.close();
+  return count;
 }
