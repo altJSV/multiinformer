@@ -1768,6 +1768,7 @@ void setup()
         Serial.println("SPIFFS ready!");
         Serial.println("Reading config file...");
         loadConfiguration(filename);
+        listDir(SPIFFS, "/", 0);
         }  
 
  // Инициализация SD карты

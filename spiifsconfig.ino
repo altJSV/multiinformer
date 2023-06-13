@@ -92,3 +92,21 @@ void saveConfiguration(const char *filename) {
   // Close the file
   file.close();
 }
+
+String playlistread(fs::FS &fs, const char * path, uint16_t line) {
+  File file = LittleFS.open(path, "r");
+  if (!file)  return F("Failed to open file for reading");
+
+  while (file.available() && line > 1) {//Пропускаем лишние строки в количестве line-1.
+    line -= file.read() == '\n';
+  }; 
+  
+  String read_text;
+  char last_simbol;
+  while (file.available() && (last_simbol != '\n')) {//Читаем строку
+    last_simbol = file.read();
+    read_text += last_simbol;
+  };
+  file.close();
+  return read_text;
+}
