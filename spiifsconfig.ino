@@ -5,12 +5,10 @@ void loadConfiguration(const char *filename) {
         Serial.println("Failed to open file");
         return;
         }
-  // Allocate a temporary JsonDocument
-  // Don't forget to change the capacity to match your requirements.
-  // Use arduinojson.org/v6/assistant to compute the capacity.
+  //выделяем память под json
   StaticJsonDocument<1024> doc1;
 
-  // Deserialize the JSON document
+  // читаем json
   DeserializationError error = deserializeJson(doc1, file);
   if (error) {
               Serial.println(F("Failed to read file, using default configuration"));
@@ -18,7 +16,7 @@ void loadConfiguration(const char *filename) {
               return;
               }
 
-  // Copy values from the JsonDocument to the Config 
+  // копируем значения 
   const char * jspc_server_path = doc1["pcadress"] ;
   //const char * jstoken = doc1["yatoken"];
   const char * jsapi_key= doc1["weatherapi"];
@@ -27,14 +25,12 @@ void loadConfiguration(const char *filename) {
   const char * jsPASS=doc1["pass"];
   usesensor= (bool)doc1["usesensor"];
   gmt= (int8_t)doc1["gmt"];
-  Serial.println(gmt);
   refpcinterval= (uint32_t)doc1["refpcinterval"];
   refweatherinterval= (uint32_t)doc1["refweatherinterval"];
   refsensorinterval= (uint32_t)doc1["refsensorinterval"];
   bright_level = (uint8_t)doc1["bright_level"];
-  //String ntpserverbuf=doc1["ntpserver"] | "pool.ntp.org";
-  //ntpserver=&ntpserverbuf[1];
-  //Serial.println(ntpserver);
+  //const char* ntpserverbuf=doc1["ntpserver"] | "pool.ntp.org";
+  //  ntp.setHost(ntpserverbuf);
   photosensor= (bool)doc1["photosensor"];
   pc_server_path = jspc_server_path;
   ledindicator = (bool)doc1["ledindicator"];
@@ -42,35 +38,31 @@ void loadConfiguration(const char *filename) {
   qLocation  = jsqLocation;
   SSID=jsSSID;
   PASS=jsPASS;
-  // Close the file (Curiously, File's destructor doesn't close the file)
+  // Закрываем файл
   file.close();
 }
 
-// Saves the configuration to a file
+// сохраняем настройки в файл
 void saveConfiguration(const char *filename) {
   // Delete existing file, otherwise the configuration is appended to the file
   SPIFFS.remove(filename);
 
-  // Open file for writing
+  // Открываем файл для чтения
   File file = SPIFFS.open(filename, FILE_WRITE);
   if (!file) {
     Serial.println(F("Failed to create file"));
     return;
   }
 
-  // Allocate a temporary JsonDocument
-  // Don't forget to change the capacity to match your requirements.
-  // Use arduinojson.org/assistant to compute the capacity.
+  //Выделяем память под JSON
   StaticJsonDocument<1024> doc1;
 
   // Set the values in the document
   doc1["pcadress"] = pc_server_path; //адрес сервера пк монитора
   doc1["refpcinterval"] = refpcinterval; //период обновления пк монитора
-  
   doc1["weatherapi"] = api_key;//api ключ погоды
   doc1["weathercity"] = qLocation; //Местоположение
   doc1["refweatherinterval"] = refweatherinterval;//период обновления погоды
-  
   doc1["gmt"] = gmt; //часовой пояс
   doc1["ledindicator"] = ledindicator;//состояние led индикатора
   doc1["usesensor"] = usesensor; //использование сенсора bme
@@ -78,8 +70,11 @@ void saveConfiguration(const char *filename) {
   doc1["bright_level"] = bright_level;// яркость подсветки экрана
   doc1["ssid"] = SSID; //часовой пояс
   doc1["pass"] = PASS;//состояние led индикатора
-  //doc1["ntpserver"]=ntpserver;
-  //Serial.println(ntpserver);
+  //char buf[32];
+  //      lv_dropdown_get_selected_str(obj, buf, 0);
+  //      ntpserver=buf;
+//  doc1["ntpserver"]=ntpserverbuf;
+ // Serial.println(ntpserverbuf);
   doc1["photosensor"] = photosensor; //автоматическая регулировка яркости подсветки
   // Serialize JSON to file
   if (serializeJson(doc1, file) == 0) {
@@ -89,10 +84,11 @@ void saveConfiguration(const char *filename) {
   {
     Serial.println("Config file saved!");
   }
-  // Close the file
+  // Закрываем файл
   file.close();
 }
 
+//Чтение строки из плейлиста
 String playlistread(fs::FS &fs, const char * path, uint16_t line) {
   File file = fs.open(path, "r");
   if (!file)  return F("Failed to open file for reading");
@@ -111,6 +107,7 @@ String playlistread(fs::FS &fs, const char * path, uint16_t line) {
   return read_text;
 }
 
+//Определение колличества строк в плейлисте
 uint8_t playlistnumtrack(fs::FS &fs, const char * path) {
   File file = fs.open(path, "r");
   if (!file)  return 0;
@@ -120,4 +117,54 @@ uint8_t playlistnumtrack(fs::FS &fs, const char * path) {
   };
   file.close();
   return count;
+}
+
+//сохранение конфигурации радио
+void saveRadioConf(const char *filename) {
+  SPIFFS.remove(filename);
+  // Открываем файл для чтения
+  File file = SPIFFS.open(filename, FILE_WRITE);
+  if (!file) {
+    Serial.println(F("Failed to create file"));
+    return;
+  }
+  StaticJsonDocument<128> doc1;
+  // записываем значения в json
+  doc1["station"] = sn; //номер станции
+  doc1["vol"] = vol; //громкость
+  
+  // сохраняем на диск
+  if (serializeJson(doc1, file) == 0) {
+    Serial.println(F("Failed to write to file"));
+  }
+  else
+  {
+    Serial.println("Radio Config file saved!");
+  }
+  // Закрываем файл
+  file.close();
+}
+
+//Загрузка конфигурации радио
+void loadRadioConf(const char *filename) {
+  // Открываем файл для чтения
+  File file = SPIFFS.open(filename);
+  if(!file){
+        Serial.println("Failed to open file");
+        return;
+        }
+  //читаем json
+  StaticJsonDocument<128> doc1;
+  DeserializationError error = deserializeJson(doc1, file);
+  if (error) {
+              Serial.println(F("Failed to read file, using default configuration"));
+              file.close();
+              return;
+              }
+  // копируем значения из json
+  sn=(uint8_t)doc1["station"]; //номер станции
+  vol=(uint8_t)doc1["vol"]; //громкость
+  // закрываем файл
+  Serial.println("Radio Config file loaded!");
+  file.close();
 }

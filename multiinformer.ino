@@ -67,10 +67,9 @@
 
 //Различные глобальные переменные
 //Режим радио
-  int sn = 1, vol = 5; //sn номер станции, vol громкость макс 20, un колличество станций в массива
+  uint8_t sn = 1, vol = 10, un=0; //sn номер станции, vol громкость макс 20, un колличество треков в плейлисте
   char URL[100], sta[50]; //URL и название станции
-  uint8_t un=0; //Колличество треков в плейлисте
-  String url="http://vladfm.ru:8000/vfm*Владивосток FM";
+  String url="http://vladfm.ru:8000/vfm*Владивосток FM"; //Станция по умолчанию
   bool rp = false; //проигрывается ли радио в данный момент
   bool refresh_playlist = true; //Признак обновления плейлиста
   bool playlist_edit=false; //плейлист находится в режиме редактирования
@@ -99,7 +98,6 @@
     uint32_t refweatherinterval=300000;//Погода 5 минут
     uint32_t refsensorinterval=5000;//получение данных с сенсора 5 секунд
 //Предварительная инициализация json для монитора ПК
-//StaticJsonDocument<8000> hwm;  
 //служебные переменные для анимаций
     u_int8_t prev_cpu_usage=0;//предыдущее значение загрузки проца
     u_int8_t prev_gpu_usage=0;//предыдущее значение загрузки видео
@@ -230,8 +228,6 @@
   Audio audio(true, I2S_DAC_CHANNEL_LEFT_EN);
 //Инициализация BME датчика
   Adafruit_BME680 bme;
-//Инициализация Wifi Manager  
-  //WiFiManager wm;
 //Инициализации библиотек и переферии
   //инициализация библиотеки TFT_eSPI
   TFT_eSPI tft = TFT_eSPI();  
@@ -452,8 +448,9 @@
     
         char buf[32];
         lv_dropdown_get_selected_str(obj, buf, 0);
-        ntpserver=&buf[0];
-        ntp.setHost(ntpserver);
+        ntpserver=buf;
+        ntp.setHost(buf);
+        Serial.println(ntpserver);
         saveconf=true;
     
   }   
@@ -488,7 +485,7 @@
   }
 
 
-// Выключатель BME 
+//Выключатель BME 
   static void bme_switch_event(lv_event_t * e)
   {
   lv_obj_t * obj = lv_event_get_target(e);
@@ -529,10 +526,8 @@
 //включение выключение автояркости
   static void autobright_switch_event(lv_event_t * e)
   {
-    lv_event_code_t code = lv_event_get_code(e);
     lv_obj_t * obj = lv_event_get_target(e);
-    if(code == LV_EVENT_VALUE_CHANGED) {
-        if (lv_obj_has_state(obj, LV_STATE_CHECKED)) 
+       if (lv_obj_has_state(obj, LV_STATE_CHECKED)) 
         {
           photosensor=true;
         }
@@ -540,15 +535,13 @@
         {
           photosensor=false;
         }
-    }
+    
   saveconf=true;  
   }
 //включение и выключение led индикатора
   static void rgb_indic_switch_event(lv_event_t * e)
   {
-    lv_event_code_t code = lv_event_get_code(e);
     lv_obj_t * obj = lv_event_get_target(e);
-    if(code == LV_EVENT_VALUE_CHANGED) {
         if (lv_obj_has_state(obj, LV_STATE_CHECKED)) 
         {
           ledindicator=true;
@@ -557,7 +550,7 @@
         {
           ledindicator=false;
         }
-    }
+    
   saveconf=true;  
   }  
 
@@ -663,30 +656,23 @@
   {
     lv_event_code_t code = lv_event_get_code(e);
 
-    if(code == LV_EVENT_CLICKED) 
-    {
         if (vol<=21)
         {
           vol++;
           lv_bar_set_value(radio_volumembar, vol, LV_ANIM_ON);
           audio.setVolume(vol);
         }
-    }
+    
   }
 //Громкость вниз
   void radio_volume_down(lv_event_t * e)//громкость-
   {
-    lv_event_code_t code = lv_event_get_code(e);
-
-    if(code == LV_EVENT_CLICKED) 
-    {
         if (vol>0)
         {
           vol--;
           lv_bar_set_value(radio_volumembar, vol, LV_ANIM_ON);
           audio.setVolume(vol);
-        }
-    }  
+        }  
   }
 //Изменение громкости слайдером
   static void radio_volumembar_event_cb(lv_event_t * e)
@@ -698,11 +684,6 @@
 //Канал вперед
   void radio_chanel_up(lv_event_t * e) //громкость+
   {
-    lv_event_code_t code = lv_event_get_code(e);
-
-    if(code == LV_EVENT_CLICKED) 
-    {
-        //mp3 ->stop();
         sn++;
         if (sn>un)
         {
@@ -716,16 +697,10 @@
           lv_chart_set_type(radio_visualiser, LV_CHART_TYPE_BAR);
           refvisualiser.setInterval(50);
           }
-    } 
   }
 //Канал назад
   void radio_chanel_down(lv_event_t * e)//громкость-
   {
-    lv_event_code_t code = lv_event_get_code(e);
-
-    if(code == LV_EVENT_CLICKED) 
-    {
-        
          sn--;
         if (sn<0)
         {
@@ -739,15 +714,12 @@
           lv_chart_set_type(radio_visualiser, LV_CHART_TYPE_BAR);
           refvisualiser.setInterval(50);
           }
-          }
   }
 //запуск воспроизведения
   void radio_play_btn_press(lv_event_t * e)//громкость-
   {
-    lv_event_code_t code = lv_event_get_code(e);
     lv_obj_t * imgbtn = lv_event_get_target(e);
-    if(code == LV_EVENT_CLICKED) 
-    {
+    
         if (rp==false)
         {
           lv_imgbtn_set_src(imgbtn, LV_IMGBTN_STATE_RELEASED, NULL, &stop, NULL);
@@ -762,10 +734,10 @@
           lv_imgbtn_set_src(imgbtn, LV_IMGBTN_STATE_RELEASED, NULL, &play, NULL);
           audio.stopSong();
           refvisualiser.stop();
+          saveRadioConf("/radioconf.txt");
           lv_chart_set_type(radio_visualiser, LV_CHART_TYPE_NONE);
         }
         rp=!rp;
-    }
   }
 //Закрытия окна плейлиста
   static void playlistwin_close_event( lv_event_t * e)
@@ -784,10 +756,6 @@
 //Открытие плейлиста
   void radio_playlist_edit(lv_event_t * e) //Кнопка нажатия 
   {
-    lv_event_code_t code = lv_event_get_code(e);
-
-    if(code == LV_EVENT_CLICKED) 
-    {
         lv_obj_clear_flag(playlistwin, LV_OBJ_FLAG_HIDDEN);
         //Добавляем таблицу плейлиста
         if (refresh_playlist)
@@ -815,7 +783,6 @@
           }
           refresh_playlist=false;
         }
-    } 
   }
 //Обработка нажатия на таблицу плейлиста
   void playlist_table_press_event_cb(lv_event_t * e)//громкость-
@@ -868,7 +835,7 @@
     if (lv_msgbox_get_active_btn(obj)==0) ESP.restart();
   }    
 //Сохранение плейлиста на sd карту
-void sd_settings_playlist_save_event(lv_event_t * e)
+  void sd_settings_playlist_save_event(lv_event_t * e)
     {
       if(!SD.begin(5,SDSPI)){
         Serial.println("Card Mount Failed");
@@ -880,7 +847,7 @@ void sd_settings_playlist_save_event(lv_event_t * e)
       }
     }
 //Загрузка плейлиста с sd карты
-void sd_settings_playlist_save_event(lv_event_t * e)
+  void sd_settings_playlist_load_event(lv_event_t * e)
     {
       bool result;
       if(!SD.begin(5,SDSPI)){
@@ -918,18 +885,7 @@ void sd_settings_playlist_save_event(lv_event_t * e)
       }
     }
 
-//Запуск WifiManager
-/*  void button_set_wifimanager_event (lv_event_t * e)
-    {
-      if (!wm.startConfigPortal("Multiinformer")) {
-        Serial.println("failed to connect or hit timeout");
-        //delay(3000);
-        // ESP.restart();
-      } else {
-        //if you get here you have connected to the WiFi
-        Serial.println("connected...)");
-      }
-    }*/ 
+
 
 //инициализация LVGL и создание всех объектов
 void lvlg_create()
@@ -1383,7 +1339,6 @@ Serial.println("3 screen");
   lv_obj_align(radio_station_num_label, LV_ALIGN_TOP_RIGHT, 0, 0); //положение на экране
   
   radio_volumembar = lv_slider_create(tab6);
-    //lv_obj_set_style_bg_color(gpurambar,lv_color_hex(0x005800),LV_PART_INDICATOR);
   lv_obj_set_size(radio_volumembar, 380, 20);
   lv_obj_align(radio_volumembar, LV_ALIGN_BOTTOM_MID, 0, -80); //положение на экране
   lv_slider_set_range(radio_volumembar, 0, 21);
@@ -1415,13 +1370,13 @@ Serial.println("3 screen");
     lv_imgbtn_set_src(radio_volmin_btn, LV_IMGBTN_STATE_RELEASED, NULL, &volmin, NULL);
     lv_obj_align_to(radio_volmin_btn, radio_volumembar, LV_ALIGN_LEFT_MID, -20, 0);
     lv_obj_set_size(radio_volmin_btn, 24, 24);
-    lv_obj_add_event_cb(radio_volmin_btn, radio_volume_down, LV_EVENT_ALL, NULL);
+    lv_obj_add_event_cb(radio_volmin_btn, radio_volume_down, LV_EVENT_CLICKED, NULL);
 
     lv_obj_t * radio_volmax_btn = lv_imgbtn_create(tab6);
     lv_imgbtn_set_src(radio_volmax_btn, LV_IMGBTN_STATE_RELEASED, NULL, &volmax, NULL);
     lv_obj_align_to(radio_volmax_btn, radio_volumembar, LV_ALIGN_OUT_RIGHT_MID, 10, 0);
     lv_obj_set_size(radio_volmax_btn, 24, 24);
-    lv_obj_add_event_cb(radio_volmax_btn, radio_volume_up, LV_EVENT_ALL, NULL);
+    lv_obj_add_event_cb(radio_volmax_btn, radio_volume_up, LV_EVENT_CLICKED, NULL);
     lv_label_set_text_fmt(radio_station_num_label, "%d/%d", sn+1,un+1); 
     url_sta(sn);
     lv_label_set_text(radio_playing_value_label, sta);
@@ -1430,25 +1385,25 @@ Serial.println("3 screen");
     lv_imgbtn_set_src(radio_play_btn, LV_IMGBTN_STATE_RELEASED, NULL, &play, NULL);
     lv_obj_align(radio_play_btn, LV_ALIGN_BOTTOM_MID, 0, 0);
     lv_obj_set_size(radio_play_btn, 70, 70);
-    lv_obj_add_event_cb(radio_play_btn, radio_play_btn_press, LV_EVENT_ALL, NULL);
+    lv_obj_add_event_cb(radio_play_btn, radio_play_btn_press, LV_EVENT_CLICKED, NULL);
     
     lv_obj_t * radio_next_btn = lv_imgbtn_create(tab6);
     lv_imgbtn_set_src(radio_next_btn, LV_IMGBTN_STATE_RELEASED, NULL, &nextst, NULL);
     lv_obj_align_to(radio_next_btn, radio_play_btn, LV_ALIGN_OUT_RIGHT_MID, 20, 0);
     lv_obj_set_size(radio_next_btn, 30, 30);
-    lv_obj_add_event_cb(radio_next_btn, radio_chanel_up, LV_EVENT_ALL, NULL);
+    lv_obj_add_event_cb(radio_next_btn, radio_chanel_up, LV_EVENT_CLICKED, NULL);
     
     lv_obj_t * radio_prev_btn = lv_imgbtn_create(tab6);
     lv_imgbtn_set_src(radio_prev_btn, LV_IMGBTN_STATE_RELEASED, NULL, &prevst, NULL);
     lv_obj_align_to(radio_prev_btn, radio_play_btn, LV_ALIGN_LEFT_MID, -40, 0);
     lv_obj_set_size(radio_prev_btn, 30, 30);
-    lv_obj_add_event_cb(radio_prev_btn, radio_chanel_down, LV_EVENT_ALL, NULL);
+    lv_obj_add_event_cb(radio_prev_btn, radio_chanel_down, LV_EVENT_CLICKED, NULL);
 
     lv_obj_t * radio_playlist_btn = lv_imgbtn_create(tab6);
     lv_imgbtn_set_src(radio_playlist_btn, LV_IMGBTN_STATE_RELEASED, NULL, &playlist, NULL);
     lv_obj_align(radio_playlist_btn, LV_ALIGN_BOTTOM_RIGHT, 0, -20);
     lv_obj_set_size(radio_playlist_btn, 30, 30);
-    lv_obj_add_event_cb(radio_playlist_btn, radio_playlist_edit, LV_EVENT_ALL, NULL);
+    lv_obj_add_event_cb(radio_playlist_btn, radio_playlist_edit, LV_EVENT_CLICKED, NULL);
 
   Serial.println("Settings screen");
 //Экран настроек вкладка 7
@@ -1464,7 +1419,7 @@ Serial.println("3 screen");
 //1 вкладка настроек Основные
     //Настройки дисплея
     lv_obj_t * settingspanel1 = lv_obj_create(settab1);
-    lv_obj_set_size(settingspanel1, 340,125);
+    lv_obj_set_size(settingspanel1, 335,125);
     lv_obj_t  * ui_label_set_cat_display = lv_label_create(settingspanel1); //создаем объект заголовок
     lv_label_set_text(ui_label_set_cat_display, "Дисплей"); //сам текст для надписи
     lv_obj_align(ui_label_set_cat_display, LV_ALIGN_TOP_MID, 0, 0); //положение на экране  
@@ -1474,7 +1429,7 @@ Serial.println("3 screen");
     lv_obj_align(ui_label_changebrightness, LV_ALIGN_TOP_LEFT, 0, 20); //положение на экране
     //выключаетль автояркости
     lv_obj_t * autobright_switch = lv_switch_create(settingspanel1);
-    lv_obj_add_event_cb(autobright_switch, autobright_switch_event, LV_EVENT_ALL, NULL);
+    lv_obj_add_event_cb(autobright_switch, autobright_switch_event, LV_EVENT_VALUE_CHANGED, NULL);
     lv_obj_align(autobright_switch, LV_ALIGN_TOP_RIGHT, 0, 20); //положение на экране
     lv_obj_set_size(autobright_switch,32,16);
     if (photosensor)
@@ -1492,7 +1447,7 @@ Serial.println("3 screen");
     //Создаем слайдер изменения яркости
     lv_obj_t * slider_brightness = lv_slider_create(settingspanel1);
     lv_obj_align(slider_brightness, LV_ALIGN_TOP_LEFT, 0, 50);
-    lv_obj_set_width(slider_brightness,300);
+    lv_obj_set_width(slider_brightness,295);
     lv_slider_set_range(slider_brightness, 1 , 255);
     lv_slider_set_value(slider_brightness, bright_level, LV_ANIM_OFF);
     lv_obj_add_event_cb(slider_brightness, slider_brightness_event_cb, LV_EVENT_VALUE_CHANGED, NULL);
@@ -1506,7 +1461,7 @@ Serial.println("3 screen");
     lv_obj_align(ui_label_change_rgb_ind, LV_ALIGN_TOP_LEFT, 0, 80); //положение на экране
     //выключатель rgb индикатора
     lv_obj_t * rgb_indic_switch = lv_switch_create(settingspanel1);
-    lv_obj_add_event_cb(rgb_indic_switch , rgb_indic_switch_event, LV_EVENT_ALL, NULL);
+    lv_obj_add_event_cb(rgb_indic_switch , rgb_indic_switch_event, LV_EVENT_VALUE_CHANGED, NULL);
     lv_obj_align(rgb_indic_switch , LV_ALIGN_TOP_RIGHT, 0, 80); //положение на экране
     lv_obj_set_size(rgb_indic_switch ,32,16);
     if (ledindicator)
@@ -1520,7 +1475,7 @@ Serial.println("3 screen");
 
     //Настройки NTP
     lv_obj_t * settingspanel2 = lv_obj_create(settab1);
-    lv_obj_set_size(settingspanel2, 340,LV_SIZE_CONTENT);
+    lv_obj_set_size(settingspanel2, 335,LV_SIZE_CONTENT);
     lv_obj_set_pos(settingspanel2, 0, 135);
     lv_obj_t  * ui_label_set_cat_time = lv_label_create(settingspanel2); //создаем объект заголовок
     lv_label_set_text(ui_label_set_cat_time, "NTP"); //сам текст для надписи
@@ -1538,7 +1493,7 @@ Serial.println("3 screen");
                             "ntp2.stratum2.ru\n"
                             "ntp.msk-ix.ru");
     lv_obj_align_to(ui_dd_ntp_server, ui_label_ntp_server, LV_ALIGN_OUT_RIGHT_MID, 5, 0);
-    lv_obj_set_width(ui_dd_ntp_server,240);
+    lv_obj_set_width(ui_dd_ntp_server,235);
     lv_dropdown_set_selected(ui_dd_ntp_server, lv_dropdown_get_option_index(ui_dd_ntp_server, ntpserver));
     lv_obj_add_event_cb(ui_dd_ntp_server, ui_dd_ntp_server_event, LV_EVENT_VALUE_CHANGED, NULL);
   
@@ -1548,7 +1503,7 @@ Serial.println("3 screen");
 
     lv_obj_t * slider_gmt = lv_slider_create(settingspanel2);
     lv_obj_align(slider_gmt, LV_ALIGN_TOP_LEFT, 0, 100);
-    lv_obj_set_width(slider_gmt,300);
+    lv_obj_set_width(slider_gmt,295);
     lv_slider_set_range(slider_gmt, -12 , 14);
     lv_slider_set_value(slider_gmt, gmt, LV_ANIM_OFF);
     lv_obj_add_event_cb(slider_gmt, slider_gmt_event_cb, LV_EVENT_VALUE_CHANGED, NULL);
@@ -1559,7 +1514,7 @@ Serial.println("3 screen");
   
 //2 вкладка настроек ПК монитор
   lv_obj_t * pc_settingspanel1 = lv_obj_create(settab2);
-  lv_obj_set_size(pc_settingspanel1, 340,LV_SIZE_CONTENT);
+  lv_obj_set_size(pc_settingspanel1, 335,LV_SIZE_CONTENT);
  
   lv_obj_t  * ui_label_pc_server = lv_label_create(pc_settingspanel1); //создаем объект заголовок
   lv_label_set_text(ui_label_pc_server, "Адрес сервера:"); //сам текст для надписи
@@ -1568,7 +1523,7 @@ Serial.println("3 screen");
   pc_ta = lv_textarea_create(pc_settingspanel1);
     lv_textarea_set_one_line(pc_ta, true);
     lv_obj_align(pc_ta, LV_ALIGN_TOP_LEFT, 0, 20);
-     lv_obj_set_width(pc_ta,300);
+     lv_obj_set_width(pc_ta,295);
      lv_textarea_set_text(pc_ta, pc_server_path.c_str());
      lv_obj_add_event_cb(pc_ta, ta_event_cb, LV_EVENT_ALL, kb);
      lv_obj_add_event_cb(pc_ta, pc_ta_event_cb, LV_EVENT_READY, NULL);
@@ -1580,7 +1535,7 @@ Serial.println("3 screen");
   //Создаем слайдер изменения обновления
   lv_obj_t * slider_pc_int = lv_slider_create(pc_settingspanel1);
   lv_obj_align(slider_pc_int, LV_ALIGN_TOP_LEFT, 0, 100);
-  lv_obj_set_width(slider_pc_int,300);
+  lv_obj_set_width(slider_pc_int,295);
   lv_slider_set_range(slider_pc_int, 1 , 60);
   lv_slider_set_value(slider_pc_int, refpcinterval/1000, LV_ANIM_OFF);
   lv_obj_add_event_cb(slider_pc_int, slider_pcint_event_cb, LV_EVENT_VALUE_CHANGED, NULL);
@@ -1591,7 +1546,7 @@ Serial.println("3 screen");
 
 //3 вкладка настроек Погода
   lv_obj_t * wt_settingspanel1 = lv_obj_create(settab3);
-  lv_obj_set_size(wt_settingspanel1, 340,LV_SIZE_CONTENT);
+  lv_obj_set_size(wt_settingspanel1, 335,LV_SIZE_CONTENT);
   
   lv_obj_t  * ui_label_weather_api = lv_label_create(wt_settingspanel1); //создаем объект заголовок
   lv_label_set_text(ui_label_weather_api, "OpenWeatherMap API ключ:"); //сам текст для надписи
@@ -1600,7 +1555,7 @@ Serial.println("3 screen");
   wt_ta = lv_textarea_create(wt_settingspanel1);
     lv_textarea_set_one_line(wt_ta, true);
     lv_obj_align(wt_ta, LV_ALIGN_TOP_LEFT, 0, 20);
-     lv_obj_set_width(wt_ta,300);
+     lv_obj_set_width(wt_ta,295);
      lv_textarea_set_text(wt_ta, api_key.c_str());
      lv_obj_add_event_cb(wt_ta, ta_event_cb, LV_EVENT_ALL, kb);
      lv_obj_add_event_cb(wt_ta, wt_ta_event_cb, LV_EVENT_READY, NULL);
@@ -1612,7 +1567,7 @@ Serial.println("3 screen");
   wtl_ta = lv_textarea_create(wt_settingspanel1);
     lv_textarea_set_one_line(wtl_ta, true);
     lv_obj_align(wtl_ta, LV_ALIGN_TOP_LEFT, 0, 90);
-     lv_obj_set_width(wtl_ta,300);
+     lv_obj_set_width(wtl_ta,295);
      lv_textarea_set_text(wtl_ta, qLocation.c_str());
      lv_obj_add_event_cb(wtl_ta, ta_event_cb, LV_EVENT_ALL, kb);
      lv_obj_add_event_cb(wtl_ta, wtl_ta_event_cb, LV_EVENT_READY, NULL);    
@@ -1624,7 +1579,7 @@ Serial.println("3 screen");
   //Создаем слайдер изменения обновления
   lv_obj_t * slider_weather_int = lv_slider_create(wt_settingspanel1);
   lv_obj_align(slider_weather_int, LV_ALIGN_TOP_LEFT, 0, 170);
-  lv_obj_set_width(slider_weather_int,300);
+  lv_obj_set_width(slider_weather_int,295);
   lv_slider_set_range(slider_weather_int, 1 , 600);
   lv_slider_set_value(slider_weather_int, refweatherinterval/1000, LV_ANIM_OFF);
   lv_obj_add_event_cb(slider_weather_int, slider_weatherint_event_cb, LV_EVENT_VALUE_CHANGED, NULL);
@@ -1637,7 +1592,7 @@ Serial.println("3 screen");
   
 //4 вкладка настроек. Датчик BME 
     lv_obj_t * bme_settingspanel1 = lv_obj_create(settab4);
-    lv_obj_set_size(bme_settingspanel1, 340,LV_SIZE_CONTENT);
+    lv_obj_set_size(bme_settingspanel1, 335,LV_SIZE_CONTENT);
     
     lv_obj_t  * ui_label_bme_use = lv_label_create(bme_settingspanel1); //создаем объект заголовок
     lv_label_set_text(ui_label_bme_use, "Использовать датчик температуры"); //сам текст для надписи
@@ -1656,7 +1611,7 @@ Serial.println("3 screen");
     //Создаем слайдер изменения обновления
     lv_obj_t * slider_bme_int = lv_slider_create(bme_settingspanel1);
     lv_obj_align(slider_bme_int, LV_ALIGN_TOP_LEFT, 0, 60);
-    lv_obj_set_width(slider_bme_int,300);
+    lv_obj_set_width(slider_bme_int,295);
     lv_slider_set_range(slider_bme_int, 1 , 60);
     lv_slider_set_value(slider_bme_int, refsensorinterval/1000, LV_ANIM_OFF);
     lv_obj_add_event_cb(slider_bme_int, slider_bmeint_event_cb, LV_EVENT_VALUE_CHANGED, NULL);
@@ -1667,7 +1622,7 @@ Serial.println("3 screen");
 
 //5 вкладка настроек sd карта
     lv_obj_t * sd_settingspanel1 = lv_obj_create(settab5);
-    lv_obj_set_size(sd_settingspanel1, 340,LV_SIZE_CONTENT);
+    lv_obj_set_size(sd_settingspanel1, 335,LV_SIZE_CONTENT);
     //Заголовок панели
     lv_obj_t  * ui_label_set_cat_sdsave = lv_label_create(sd_settingspanel1); //создаем объект заголовок
     lv_label_set_text(ui_label_set_cat_sdsave , "Запись/загрузка настроек с SD карты"); //сам текст для надписи
@@ -1693,7 +1648,7 @@ Serial.println("3 screen");
     
     //Панель сохранения плейлиста на sd карту
     lv_obj_t * sd_settingspanel2 = lv_obj_create(settab5);
-    lv_obj_set_size(sd_settingspanel2, 340,LV_SIZE_CONTENT);
+    lv_obj_set_size(sd_settingspanel2, 335,LV_SIZE_CONTENT);
     lv_obj_set_pos(sd_settingspanel2, 0, 170);
     //Заголовок панели
     lv_obj_t  * ui_label_set_cat_playlist_save = lv_label_create(sd_settingspanel2); //создаем объект заголовок
@@ -1715,7 +1670,7 @@ Serial.println("3 screen");
     lv_obj_center(ui_button_label_set_playlistload);
 //Экран настроек WiFi
   lv_obj_t * wifi_settingspanel1 = lv_obj_create(settab6);
-  lv_obj_set_size(wifi_settingspanel1, 340,130);
+  lv_obj_set_size(wifi_settingspanel1, 335,130);
   //Заголовок панели
     lv_obj_t  * ui_label_set_cat_wifi_set = lv_label_create(wifi_settingspanel1); //создаем объект заголовок
     lv_label_set_text(ui_label_set_cat_wifi_set , "Настройки WiFi"); //сам текст для надписи
@@ -1740,7 +1695,7 @@ Serial.println("3 screen");
   wifipass_ta = lv_textarea_create(wifi_settingspanel1);
     lv_textarea_set_one_line(wifipass_ta, true);
     lv_obj_align(wifipass_ta, LV_ALIGN_TOP_LEFT, 155, 40);
-     lv_obj_set_width(wifipass_ta,150);
+     lv_obj_set_width(wifipass_ta,140);
      lv_textarea_set_text(wifipass_ta, PASS.c_str());
      lv_obj_add_event_cb(wifipass_ta, ta_event_cb, LV_EVENT_ALL, kb);
      lv_obj_add_event_cb(wifipass_ta, wifipass_ta_event_cb, LV_EVENT_READY, NULL);    
@@ -1748,19 +1703,19 @@ Serial.println("3 screen");
 
   //Заголовок панели
     lv_obj_t * wifi_settingspanel2 = lv_obj_create(settab6);
-    lv_obj_set_size(wifi_settingspanel2, 340,LV_SIZE_CONTENT);
+    lv_obj_set_size(wifi_settingspanel2, 335,LV_SIZE_CONTENT);
     lv_obj_set_pos(wifi_settingspanel2, 0, 140);
     //Заголовок панели
     lv_obj_t  * ui_label_set_cat_wifi_inf = lv_label_create(wifi_settingspanel2); //создаем объект заголовок
     lv_label_set_text(ui_label_set_cat_wifi_inf , "Информация WiFi"); //сам текст для надписи
     lv_obj_align(ui_label_set_cat_wifi_inf , LV_ALIGN_TOP_MID, 0, 0); //положение на экране 
     wifitable = lv_table_create(wifi_settingspanel2);
-    lv_obj_set_width(wifitable, 300);
+    lv_obj_set_width(wifitable, 295);
     lv_obj_add_event_cb(wifitable, draw_table_part_event_cb, LV_EVENT_DRAW_PART_BEGIN, NULL);
         lv_obj_set_pos(wifitable, 0, 20);
         lv_table_set_col_cnt(wifitable, 2);
         lv_table_set_col_width(wifitable, 0, 100);
-        lv_table_set_col_width(wifitable, 1, 200);
+        lv_table_set_col_width(wifitable, 1, 195);
         lv_table_set_cell_value(wifitable, 0, 0, "Параметр");
         lv_table_set_cell_value(wifitable, 0, 1, "Значение");
         lv_table_set_cell_value(wifitable, 1, 0, "Подключение");
@@ -1801,13 +1756,13 @@ void setup()
         Serial.println("SPIFFS ready!");
         Serial.println("Reading config file...");
         loadConfiguration(filename);
+        loadRadioConf("/radioconf.txt");
         listDir(SPIFFS, "/", 0);
         Serial.println("Loading playlist info...");
         un=playlistnumtrack(SPIFFS,"/playlist.txt");
         if (un>0) 
           {
             Serial.printf("Found %d stations \n",un);
-            sn=1;
             url=playlistread(SPIFFS,"/playlist.txt",sn);
             Serial.printf("Current track: %s \n",url);
           }
@@ -1853,18 +1808,12 @@ void setup()
     Serial.printf("SD Card Size: %lluMB\n", cardSize);
 
    
-  //createDir(SD, "/mydir");
   listDir(SD, "/", 0);
   if (SD.exists("/playlist.txt")) 
     {
       sdLoadConf(SD, "/playlist.txt", "/playlist.txt");
       SD.remove("/playlist.txt");
       listDir(SPIFFS, "/", 0);}
-  //writeFile(SD, "/hello.txt", "Hello ");
-  //appendFile(SD, "/hello.txt", "World!\n");
-  //readFile(SD, "/hello.txt");
-  //testFileIO(SD, "/test.txt");
-  //sdSaveConf(SD, "/confbackup.txt");
   SD.end();
       }        
       
@@ -1963,7 +1912,8 @@ Serial.println("rgb start");
 Serial.println("photo start");  
 // настройка фоторезистора
   pinMode(PHOTO_PIN, ANALOG);
-
+//Настройка параметров аудио
+audio.setVolume(vol);
   
 }
 
