@@ -306,6 +306,10 @@
         if (acttab==3) {
            cur_check();
           }
+        if (audio.isRunning())
+          {
+            audio.stopSong();
+          }  
     }
   }
 //Функция вызываемая при изменении активной вкладки настроек
@@ -1320,8 +1324,8 @@ Serial.println("3 screen");
   radio_playing_label = lv_label_create(tab6); //создаем объект заголовок
   lv_label_set_text(radio_playing_label, "Трек:"); //сам текст для надписи
   lv_obj_align(radio_playing_label, LV_ALIGN_BOTTOM_LEFT, 0, -100); //положение на экране
-  //lv_obj_set_width(radio_playing_label, 450);
-  //lv_label_set_long_mode(radio_playing_label, LV_LABEL_LONG_CLIP);
+  lv_obj_set_width(radio_playing_label, 430);
+  lv_label_set_long_mode(radio_playing_label, LV_LABEL_LONG_CLIP);
 
   radio_visualiser = lv_chart_create(tab6);
   lv_obj_set_size(radio_visualiser, 430, 120);
