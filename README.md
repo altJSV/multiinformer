@@ -29,7 +29,7 @@
 - [TFT_eSPI](https://github.com/Bodmer/TFT_eSPI "TFT_eSPI")
 
 ### Настройки компилятора
-Для более комфортного прослушивания радио без фризов необходимо произвести некоторые настройки компилятора. Для этого необходимо внести изменения в файл C:\Users\ **имя_пользователя** \AppData\Local\Arduino15\packages\esp32\hardware\esp32\2.0.9\tools\sdk\esp32\sdkconfig
+Для более комфортного прослушивания радио без фризов необходимо произвести некоторые настройки компилятора. Для этого необходимо внести изменения в файл C:\Users\ **имя_пользователя** \AppData\Local\Arduino15\packages\esp32\hardware\esp32\2.0.9\tools\sdk\esp32\sdkconfig.
 Найдите и измените следующие строки:
 
     CONFIG_LWIP_MAX_ACTIVE_TCP=512
@@ -45,7 +45,21 @@
     CONFIG_LWIP_TCP_WND_DEFAULT=32768
     CONFIG_LWIP_TCP_RECVMBOX_SIZE=32
 
-
 Настройте параметры платы Arduino IDE как на скриншоте ниже:
 
 [![Параметры платы](https://github.com/altJSV/multiinformer/blob/main/additional_info/board_config.png "Параметры платы")](https://github.com/altJSV/multiinformer/blob/main/additional_info/board_config.png "Параметры платы")
+
+## Настройка списка радиостанций
+Для добавления новых радиостанций создайте на sd карте файл playlist.txt примерно такого вида:
+
+    http://rusradio.hostingradio.ru/rusradio128.mp3*Русское радио
+    http://free.radioheart.ru:8000/RH54154*Перец FM
+    http://radio-holding.ru:9000/marusya_default*Маруся FM
+    http://vladfm.ru:8000/vfm*Владивосток FM
+Каждая станция начинается с новой строки.  Формат следующий:
+url\_адрес\_потока\*Отображаемое\_имя\_станции
+Максимальное колличество радиостанций в плейлисте - 255!
+Поддерживаемые форматы воспроизведения MP3, AAC и FLAC
+После вставки SD карты и последующей перезагрузки  playlist.txt будет скопирован с SD во внутреннюю память устройства.
+Также вы можете скопировать данный файл во внутренню память с помощью Arduino IDE, используя Sketch Data Upload.
+Пример готового файла playlist.txt c 76 онлайн-радиостанциями находится в папке \data проекта.
