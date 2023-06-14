@@ -70,11 +70,6 @@ void saveConfiguration(const char *filename) {
   doc1["bright_level"] = bright_level;// яркость подсветки экрана
   doc1["ssid"] = SSID; //часовой пояс
   doc1["pass"] = PASS;//состояние led индикатора
-  //char buf[32];
-  //      lv_dropdown_get_selected_str(obj, buf, 0);
-  //      ntpserver=buf;
-//  doc1["ntpserver"]=ntpserverbuf;
- // Serial.println(ntpserverbuf);
   doc1["photosensor"] = photosensor; //автоматическая регулировка яркости подсветки
   // Serialize JSON to file
   if (serializeJson(doc1, file) == 0) {

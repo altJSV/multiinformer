@@ -200,8 +200,9 @@
     static lv_obj_t  * radio_playing_label; //название трека
     static lv_obj_t  * radio_visualiser; //визуализация трека
     static lv_chart_series_t  * radio_visualiser_series; //массив данных для визуализации
-    lv_obj_t * playlistwin; //редактор плейлиста
-    lv_obj_t * playlist_table;//таблица плейлиста
+    static lv_obj_t * playlistwin; //редактор плейлиста
+    static lv_obj_t * playlist_table;//таблица плейлиста
+    static lv_obj_t * radio_play_btn;
 
     //7 экран настройки
     static lv_obj_t * slider_label;
@@ -219,6 +220,7 @@
     static lv_obj_t * wifitable;
     static lv_obj_t * wifipass_ta;
     static lv_obj_t * wifissid_ta;
+    static lv_obj_t * ui_dd_ntp_server;
 
 
 
@@ -309,7 +311,7 @@
         if (audio.isRunning())
           {
             audio.stopSong();
-            lv_imgbtn_set_src(imgbtn, LV_IMGBTN_STATE_RELEASED, NULL, &play, NULL);
+            lv_imgbtn_set_src(radio_play_btn, LV_IMGBTN_STATE_RELEASED, NULL, &play, NULL);
             refvisualiser.stop();
             saveRadioConf("/radioconf.txt");
             lv_chart_set_type(radio_visualiser, LV_CHART_TYPE_NONE);
@@ -449,19 +451,7 @@
     ntp.setGMT(gmt);
     saveconf=true;
   }
-//Обработка выбора часового пояса
-  static void ui_dd_ntp_server_event(lv_event_t * e)
-  {
-    lv_obj_t * obj = lv_event_get_target(e);
-    
-        char buf[32];
-        lv_dropdown_get_selected_str(obj, buf, 0);
-        ntpserver=buf;
-        ntp.setHost(buf);
-        Serial.println(ntpserver);
-        saveconf=true;
-    
-  }   
+
 //Обработка изменения значения слайдера интервала обновления пк информера
   static void slider_pcint_event_cb(lv_event_t * e)
   {
@@ -1389,7 +1379,7 @@ Serial.println("3 screen");
     url_sta(sn);
     lv_label_set_text(radio_playing_value_label, sta);
   //кнопки управления плеером
-    lv_obj_t * radio_play_btn = lv_imgbtn_create(tab6);
+    radio_play_btn = lv_imgbtn_create(tab6);
     lv_imgbtn_set_src(radio_play_btn, LV_IMGBTN_STATE_RELEASED, NULL, &play, NULL);
     lv_obj_align(radio_play_btn, LV_ALIGN_BOTTOM_MID, 0, 0);
     lv_obj_set_size(radio_play_btn, 70, 70);
@@ -1489,28 +1479,16 @@ Serial.println("3 screen");
     lv_label_set_text(ui_label_set_cat_time, "NTP"); //сам текст для надписи
     lv_obj_align(ui_label_set_cat_time, LV_ALIGN_TOP_MID, 0, 0); //положение на экране
 
-    lv_obj_t  * ui_label_ntp_server = lv_label_create(settingspanel2); //создаем объект заголовок
-    lv_label_set_text(ui_label_ntp_server, "Сервер:"); //сам текст для надписи
-    lv_obj_align(ui_label_ntp_server, LV_ALIGN_TOP_LEFT, 0, 30); //положение на экране 
-
-    lv_obj_t * ui_dd_ntp_server = lv_dropdown_create(settingspanel2);
-    lv_dropdown_set_options(ui_dd_ntp_server, "pool.ntp.org\n"
-                            "ntp.msk-ix.ru\n"
-                            "ntp1.vniiftri.ru\n"
-                            "ntp1.stratum2.ru\n"
-                            "ntp2.stratum2.ru\n"
-                            "ntp.msk-ix.ru");
-    lv_obj_align_to(ui_dd_ntp_server, ui_label_ntp_server, LV_ALIGN_OUT_RIGHT_MID, 5, 0);
-    lv_obj_set_width(ui_dd_ntp_server,235);
-    lv_dropdown_set_selected(ui_dd_ntp_server, lv_dropdown_get_option_index(ui_dd_ntp_server, ntpserver));
-    lv_obj_add_event_cb(ui_dd_ntp_server, ui_dd_ntp_server_event, LV_EVENT_VALUE_CHANGED, NULL);
+    //lv_obj_t  * ui_label_ntp_server = lv_label_create(settingspanel2); //создаем объект заголовок
+    //lv_label_set_text(ui_label_ntp_server, "Сервер:"); //сам текст для надписи
+    //lv_obj_align(ui_label_ntp_server, LV_ALIGN_TOP_LEFT, 0, 30); //положение на экране 
   
     lv_obj_t  * ui_label_ntp_gmt = lv_label_create(settingspanel2); //создаем объект заголовок
     lv_label_set_text(ui_label_ntp_gmt, "Часовой пояс:"); //сам текст для надписи
-    lv_obj_align(ui_label_ntp_gmt, LV_ALIGN_TOP_LEFT, 0, 70); 
+    lv_obj_align(ui_label_ntp_gmt, LV_ALIGN_TOP_LEFT, 0, 0); 
 
     lv_obj_t * slider_gmt = lv_slider_create(settingspanel2);
-    lv_obj_align(slider_gmt, LV_ALIGN_TOP_LEFT, 0, 100);
+    lv_obj_align(slider_gmt, LV_ALIGN_TOP_LEFT, 0, 30);
     lv_obj_set_width(slider_gmt,295);
     lv_slider_set_range(slider_gmt, -12 , 14);
     lv_slider_set_value(slider_gmt, gmt, LV_ANIM_OFF);
@@ -1857,7 +1835,7 @@ bool ntpstart=false;
  while (numtries>0 && ntpstart==false)
  {
 ntp.setGMT(gmt);
-bool ntpstart=ntp.begin();
+ntpstart=ntp.begin();
 Serial.println(ntp.status());
 numtries--;
  }
