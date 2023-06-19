@@ -84,7 +84,7 @@
   bool usesensor = true; //Использовать датчик температуры
   //uint8_t sensortype = 1; //тип датчика 0 - bmp280, 1 - bme280, 2 - bme680, 
   bool ledindicator = true; //Включение или отключение rgb светодиода 
-
+  uint8_t daybegin=6, dayend=22;
 //Переменные конфигурации дисплея
   static const uint16_t screenWidth  = 480; //ширина экрана
   static const uint16_t screenHeight = 320; //высота экрана
@@ -220,7 +220,7 @@
     static lv_obj_t * wifitable;
     static lv_obj_t * wifipass_ta;
     static lv_obj_t * wifissid_ta;
-    static lv_obj_t * ui_dd_ntp_server;
+    static lv_obj_t * slider_daytime_label;
 
 
 
@@ -441,6 +441,18 @@
     ledcWrite(0, bright_level);
     saveconf=true;
   }
+
+//Обработка изменения значения установки времени работы подсветки
+  static void slider_daytime_event(lv_event_t * e)
+  {
+    lv_obj_t * slider = lv_event_get_target(e);
+    daybegin = (int)lv_slider_get_left_value(slider);
+    dayend = (int)lv_slider_get_value(slider);
+    lv_label_set_text_fmt(slider_daytime_label, "%d - %d", daybegin, dayend);
+    lv_obj_align_to(slider_label, slider, LV_ALIGN_CENTER, 0, 0);
+    saveconf=true;
+  }  
+
 //Обработка изменения значения слайдера часового пояса
   static void slider_gmt_event_cb(lv_event_t * e)
   {
@@ -1417,7 +1429,7 @@ Serial.println("3 screen");
 //1 вкладка настроек Основные
     //Настройки дисплея
     lv_obj_t * settingspanel1 = lv_obj_create(settab1);
-    lv_obj_set_size(settingspanel1, 335,125);
+    lv_obj_set_size(settingspanel1, 335,175);
     lv_obj_t  * ui_label_set_cat_display = lv_label_create(settingspanel1); //создаем объект заголовок
     lv_label_set_text(ui_label_set_cat_display, "Дисплей"); //сам текст для надписи
     lv_obj_align(ui_label_set_cat_display, LV_ALIGN_TOP_MID, 0, 0); //положение на экране  
@@ -1470,11 +1482,30 @@ Serial.println("3 screen");
     {
       lv_obj_clear_state(rgb_indic_switch , LV_STATE_CHECKED);
     }
+    //Надпись установки дневного времени
+    lv_obj_t  * ui_label_daytime = lv_label_create(settingspanel1); //создаем объект заголовок
+    lv_label_set_text(ui_label_daytime, "Часы работы индикатора и подсветки"); //сам текст для надписи
+    lv_obj_align(ui_label_daytime, LV_ALIGN_TOP_LEFT, 0, 110); //положение на экране
+    
+    lv_obj_t * ui_slider_day_time;
+    ui_slider_day_time = lv_slider_create(settingspanel1);
+    lv_obj_align(ui_slider_day_time, LV_ALIGN_TOP_LEFT, 0, 130);
+    lv_slider_set_range(ui_slider_day_time, 0 , 23);
+    lv_obj_set_width(ui_slider_day_time,295);
+    lv_slider_set_mode(ui_slider_day_time, LV_SLIDER_MODE_RANGE);
+    lv_slider_set_value(ui_slider_day_time, dayend, LV_ANIM_OFF);
+    lv_slider_set_left_value(ui_slider_day_time, daybegin, LV_ANIM_OFF);
+
+    lv_obj_add_event_cb(ui_slider_day_time, slider_daytime_event, LV_EVENT_VALUE_CHANGED, NULL);
+    //lv_obj_refresh_ext_draw_size(ui_slider_day_time);
+    slider_daytime_label = lv_label_create(settingspanel1);
+    lv_label_set_text_fmt(slider_daytime_label, "%d - %d", (int)lv_slider_get_left_value(ui_slider_day_time), (int)lv_slider_get_value(ui_slider_day_time));
+    lv_obj_align_to(slider_daytime_label, ui_slider_day_time, LV_ALIGN_CENTER, 0, 0);
 
     //Настройки NTP
     lv_obj_t * settingspanel2 = lv_obj_create(settab1);
     lv_obj_set_size(settingspanel2, 335,LV_SIZE_CONTENT);
-    lv_obj_set_pos(settingspanel2, 0, 135);
+    lv_obj_set_pos(settingspanel2, 0, 185);
     lv_obj_t  * ui_label_set_cat_time = lv_label_create(settingspanel2); //создаем объект заголовок
     lv_label_set_text(ui_label_set_cat_time, "NTP"); //сам текст для надписи
     lv_obj_align(ui_label_set_cat_time, LV_ALIGN_TOP_MID, 0, 0); //положение на экране
@@ -2215,6 +2246,7 @@ audio.setVolume(vol);
   };
 
   lv_calendar_set_highlighted_dates(calendar, highlighted_days, 46);
+  lv_label_set_text(statusbox," ");
   for (byte i=0;i<49;i++)
             {
               if (ntp.month()==highlighted_days[i].month && ntp.day()==highlighted_days[i].day)
@@ -2283,12 +2315,12 @@ void loop()
   lv_label_set_text_fmt(roomhumid, LV_SYMBOL_HUMIDITY"%.1f%",bme.humidity);
   lv_label_set_text_fmt(roompress,LV_SYMBOL_PRESSURE"%dмм рт. ст.",bme.pressure/133,3);
   int airquality=bme.gas_resistance / 1000;
-  if (airquality<51) {lv_label_set_text_fmt(roomair,"Качество воздуха: Хорошее",airquality);if (ledindicator){ledcWrite(1, 255);ledcWrite(2, 128);ledcWrite(3, 255);}}
-  if (airquality>50 && airquality<101) {lv_label_set_text_fmt(roomair,"Качество воздуха: Среднее",airquality);if (ledindicator){ledcWrite(1, 255);ledcWrite(2, 200);ledcWrite(3, 255);}} 
-  if (airquality>100 && airquality<151) {lv_label_set_text_fmt(roomair,"Качество воздуха: Ниже среднего",airquality);if (ledindicator){ledcWrite(1, 225);ledcWrite(2, 225);ledcWrite(3, 255);}} 
-  if (airquality>150 && airquality<201) {lv_label_set_text_fmt(roomair,"Качество воздуха: Плохое",airquality);if (ledindicator){ledcWrite(1, 225);ledcWrite(2, 165);ledcWrite(3, 255);}} 
-  if (airquality>200 && airquality<301) {lv_label_set_text_fmt(roomair,"Качество воздуха: Очень плохое",airquality);if (ledindicator){ledcWrite(1, 200);ledcWrite(2, 255);ledcWrite(3, 255);}} 
-  if (airquality>300) {lv_label_set_text_fmt(roomair,"Качество воздуха: Опасное",airquality);if (ledindicator){ledcWrite(1, 100);ledcWrite(2, 255);ledcWrite(3, 255);}} 
+  if (airquality<51) {lv_label_set_text_fmt(roomair,"Качество воздуха: Хорошее",airquality);if (ledindicator && ntp.hour()>=daybegin && ntp.hour()<=dayend){ledcWrite(1, 255);ledcWrite(2, 128);ledcWrite(3, 255);}}
+  if (airquality>50 && airquality<101) {lv_label_set_text_fmt(roomair,"Качество воздуха: Среднее",airquality);if (ledindicator && ntp.hour()>=daybegin && ntp.hour()<=dayend){ledcWrite(1, 255);ledcWrite(2, 200);ledcWrite(3, 255);}} 
+  if (airquality>100 && airquality<151) {lv_label_set_text_fmt(roomair,"Качество воздуха: Ниже среднего",airquality);if (ledindicator && ntp.hour()>=daybegin && ntp.hour()<=dayend){ledcWrite(1, 225);ledcWrite(2, 225);ledcWrite(3, 255);}} 
+  if (airquality>150 && airquality<201) {lv_label_set_text_fmt(roomair,"Качество воздуха: Плохое",airquality);if (ledindicator && ntp.hour()>=daybegin && ntp.hour()<=dayend){ledcWrite(1, 225);ledcWrite(2, 165);ledcWrite(3, 255);}} 
+  if (airquality>200 && airquality<301) {lv_label_set_text_fmt(roomair,"Качество воздуха: Очень плохое",airquality);if (ledindicator && ntp.hour()>=daybegin && ntp.hour()<=dayend){ledcWrite(1, 200);ledcWrite(2, 255);ledcWrite(3, 255);}} 
+  if (airquality>300) {lv_label_set_text_fmt(roomair,"Качество воздуха: Опасное",airquality);if (ledindicator && ntp.hour()>=daybegin && ntp.hour()<=dayend){ledcWrite(1, 100);ledcWrite(2, 255);ledcWrite(3, 255);}} 
   lv_bar_set_value(roomair_bar,airquality/10, LV_ANIM_ON);
   lv_label_set_text_fmt(roomair_bar_label,"%d",airquality);
   }

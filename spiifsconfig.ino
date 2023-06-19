@@ -29,8 +29,8 @@ void loadConfiguration(const char *filename) {
   refweatherinterval= (uint32_t)doc1["refweatherinterval"];
   refsensorinterval= (uint32_t)doc1["refsensorinterval"];
   bright_level = (uint8_t)doc1["bright_level"];
-  //const char* ntpserverbuf=doc1["ntpserver"] | "pool.ntp.org";
-  //  ntp.setHost(ntpserverbuf);
+  daybegin=(uint8_t)doc1["day_begin"] | 6;
+  dayend=(uint8_t)doc1["day_end"] | 22;
   photosensor= (bool)doc1["photosensor"];
   pc_server_path = jspc_server_path;
   ledindicator = (bool)doc1["ledindicator"];
@@ -65,6 +65,8 @@ void saveConfiguration(const char *filename) {
   doc1["refweatherinterval"] = refweatherinterval;//период обновления погоды
   doc1["gmt"] = gmt; //часовой пояс
   doc1["ledindicator"] = ledindicator;//состояние led индикатора
+  doc1["day_begin"] = daybegin;//начало дневного времени
+  doc1["day_end"] = dayend;//конец дневного времени
   doc1["usesensor"] = usesensor; //использование сенсора bme
   doc1["refsensorinterval"] = refsensorinterval; //период обновления сенсора
   doc1["bright_level"] = bright_level;// яркость подсветки экрана

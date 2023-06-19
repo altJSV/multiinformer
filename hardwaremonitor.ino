@@ -15,7 +15,7 @@ void hardwareMonitor()
       if (httpCode > 0) {
         Serial.println(httpCode);
         //Зажигаем зеленый светодиод при удачном выполнении запроса
-  if (ledindicator)
+  if (ledindicator && ntp.hour()>=daybegin && ntp.hour()<=dayend)
   {
   ledcWrite(1, 255);
   ledcWrite(2, 200);
@@ -58,7 +58,7 @@ DeserializationError error = deserializeJson(hwm, http.getStream(), Deserializat
       Serial.print ("Hardware parsing: ");
       Serial.println(errorStr);
       //Зажигаем красный светодиод при ошибке
-      if (ledindicator)
+      if (ledindicator && ntp.hour()>=daybegin && ntp.hour()<=dayend)
       {
       ledcWrite(1, 200);
       ledcWrite(2, 255);
@@ -68,7 +68,7 @@ DeserializationError error = deserializeJson(hwm, http.getStream(), Deserializat
     else
     {
       
-      if (ledindicator)
+      if (ledindicator && ntp.hour()>=daybegin && ntp.hour()<=dayend)
       {
       ledcWrite(1, 255);
       ledcWrite(2, 255);
@@ -188,7 +188,7 @@ Serial.println(hwm.memoryUsage());
     {
     Serial.println("http.GET() == 0");
     //Зажигаем красный светодиод при ошибке
-      if (ledindicator)
+      if (ledindicator && ntp.hour()>=daybegin && ntp.hour()<=dayend)
       {
       ledcWrite(1, 200);
       ledcWrite(2, 255);

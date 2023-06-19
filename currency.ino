@@ -19,9 +19,12 @@ if (httpResponseCode > 0) {
     Serial.print("HTTP Response code: ");
     Serial.println(httpResponseCode);
     //Зажигаем зеленый светодиод при удачном выполнении запроса
-  ledcWrite(1, 255);
-  ledcWrite(2, 200);
-  ledcWrite(3, 255);
+   if (ledindicator && ntp.hour()>=daybegin && ntp.hour()<=dayend)
+      {
+        ledcWrite(1, 255);
+        ledcWrite(2, 200);
+        ledcWrite(3, 255);
+      }
     //Парсинг JSON
     StaticJsonDocument<48> filter;
 filter["securities"]["data"][0] = true;
@@ -34,7 +37,7 @@ if (error) {
   Serial.print("deserializeJson() failed: ");
   Serial.println(error.c_str());
   //Зажигаем красный светодиод при ошибке
-  if (ledindicator)
+  if (ledindicator && ntp.hour()>=daybegin && ntp.hour()<=dayend)
   {
   ledcWrite(1, 200);
   ledcWrite(2, 255);
@@ -44,7 +47,7 @@ if (error) {
 else
 { 
   //Зажигаем синий светодиод при удачном парсинге JSON
-  if (ledindicator)
+  if (ledindicator && ntp.hour()>=daybegin && ntp.hour()<=dayend)
   {
   ledcWrite(1, 255);
   ledcWrite(2, 255);
@@ -66,7 +69,7 @@ lv_table_set_cell_value(cur_table, i+1, 1, val.c_str());
     Serial.print("Error code: ");
     Serial.println(httpResponseCode);
     //Зажигаем красный светодиод при ошибке
-    if (ledindicator)
+    if (ledindicator && ntp.hour()>=daybegin && ntp.hour()<=dayend)
     {
     ledcWrite(1, 200);
     ledcWrite(2, 255);
