@@ -84,7 +84,7 @@
   bool usesensor = false; //Использовать датчик температуры
   //uint8_t sensortype = 1; //тип датчика 0 - bmp280, 1 - bme280, 2 - bme680, 
   bool ledindicator = true; //Включение или отключение rgb светодиода 
-  uint8_t daybegin=6, dayend=22;
+  uint8_t daybegin=8, dayend=21;
 //Переменные конфигурации дисплея
   static const uint16_t screenWidth  = 480; //ширина экрана
   static const uint16_t screenHeight = 320; //высота экрана
@@ -1495,7 +1495,7 @@ Serial.println("3 screen");
     lv_slider_set_mode(ui_slider_day_time, LV_SLIDER_MODE_RANGE);
     lv_slider_set_left_value(ui_slider_day_time, daybegin, LV_ANIM_OFF);
     lv_slider_set_value(ui_slider_day_time, dayend, LV_ANIM_OFF);
-    
+    lv_obj_refresh_ext_draw_size(ui_slider_day_time);
 
     lv_obj_add_event_cb(ui_slider_day_time, slider_daytime_event, LV_EVENT_VALUE_CHANGED, NULL);
     //lv_obj_refresh_ext_draw_size(ui_slider_day_time);

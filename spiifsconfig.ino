@@ -29,8 +29,8 @@ void loadConfiguration(const char *filename) {
   refweatherinterval= (uint32_t)doc1["refweatherinterval"];
   refsensorinterval= (uint32_t)doc1["refsensorinterval"];
   bright_level = (uint8_t)doc1["bright_level"];
-  daybegin=(uint8_t)doc1["day_begin"] | 6;
-  dayend=(uint8_t)doc1["day_end"] | 22;
+  daybegin=(uint8_t)doc1["day_begin"];
+  dayend=(uint8_t)doc1["day_end"];
   photosensor= (bool)doc1["photosensor"];
   pc_server_path = jspc_server_path;
   ledindicator = (bool)doc1["ledindicator"];
