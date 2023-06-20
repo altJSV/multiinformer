@@ -3,9 +3,9 @@ void  cur_check()
 String payload;
 WiFiClient client;
 HTTPClient https;
-  ledcWrite(1, 255); //устанавливаем значение подсветки по умолчанию 250
-  ledcWrite(2, 255); //устанавливаем значение подсветки по умолчанию 250
-  ledcWrite(3, 255); //устанавливаем значение подсветки по умолчанию 250
+  ledcWrite(1, 255); //гасим красный светодиод
+  ledcWrite(2, 255); //гасим зеленый светодиод
+  ledcWrite(3, 255); //гасим чиний светодиод
 lv_table_set_cell_value(cur_table, 0, 0, "Валюта");
 lv_table_set_cell_value(cur_table, 0, 1, "Курс");
 //https.useHTTP10(true);
