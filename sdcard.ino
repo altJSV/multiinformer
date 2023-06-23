@@ -79,10 +79,10 @@ void writeFile(fs::FS &fs, const char * path, const char * message){
   file.close();
 }
 
-void sdSaveConf(fs::FS &fs, const char * path, const char * spiffspath)
+void sdSaveConf(fs::FS &fs, const char * path, const char * littlefspath)
 {
-  File spifsfile = SPIFFS.open(spiffspath);
-      if(!spifsfile){
+  File littlefsfile = LittleFS.open(littlefspath);
+      if(!littlefsfile){
       Serial.println("Failed to open file");
         }
       File file = fs.open(path, FILE_WRITE);
@@ -90,20 +90,20 @@ void sdSaveConf(fs::FS &fs, const char * path, const char * spiffspath)
         Serial.println("Failed to open file for writing");
         return;
         }
-      while( spifsfile.available() ) 
+      while( littlefsfile.available() ) 
       {
-      file.write( spifsfile.read() );
+      file.write(littlefsfile.read() );
       }
-      spifsfile.close();
+      littlefsfile.close();
       file.close();
       Serial.println("Settings saved!");
 }
 
-bool sdLoadConf(fs::FS &fs, const char * path, const char * spiffspath)
+bool sdLoadConf(fs::FS &fs, const char * path, const char * littlefspath)
 {
-  SPIFFS.remove(spiffspath); 
-  File spifsfile = SPIFFS.open(spiffspath, FILE_WRITE);
-      if(!spifsfile){
+  LittleFS.remove(littlefspath); 
+  File littlefsfile = LittleFS.open(littlefspath, FILE_WRITE);
+      if(!littlefsfile){
       Serial.println("Failed to open file");
       return false;
         }
@@ -114,9 +114,9 @@ bool sdLoadConf(fs::FS &fs, const char * path, const char * spiffspath)
         } 
       while( file.available() ) 
       {
-      spifsfile.write( file.read() );
+      littlefsfile.write( file.read() );
       }
-      spifsfile.close();
+      littlefsfile.close();
       file.close();
       Serial.println("Settings loaded!");
       return true;

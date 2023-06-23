@@ -13,7 +13,7 @@ void audio_showstation(const char *info){
 }
 
 void url_sta(uint8_t c) { // Разделение  URL и sta
-  url=playlistread(SPIFFS,"/playlist.txt",c);
+  url=playlistread(LittleFS,"/playlist.txt",c);
   if (url=="Failed to open file for reading") url="http://vladfm.ru:8000/vfm*Владивосток FM";
   String u=url.substring(0,url.indexOf("*")+1);
   u.toCharArray(URL,u.length());           // URL

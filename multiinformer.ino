@@ -3,7 +3,7 @@
   #include <lvgl.h> //библиотека пользовательского интерфейса
   #include "secrets.h"
   #include <FS.h> //Работа с файловой системой
-  #include <SPIFFS.h> //файловая система esp32
+  #include <LittleFS.h> //файловая система esp32
   #include "SD.h"//работа с sd картой
   #include <SPI.h>//интерфейс взаимодействия с sd картой
   #include <Wire.h> //i2c инетрфейс для тач панели и датчика bme
@@ -18,6 +18,11 @@
   #include "Adafruit_BME680.h"//библиотека для работы с датчиком BME680
   #include "Audio.h" //ESP32 Audio I2S от ESPHome
   #include <TFT_eSPI.h> //Работа с дисплеем
+  #include <WebServer.h> //Библиотека Web сервера
+  // getting access to the nice mime-type-table and getContentType()
+  #include <detail/RequestHandlersImpl.h>
+
+  #include <ESPxWebFlMgr.h> //файловый менеджер
 
 //Определяем различные параметры устройств
   //Пины ESP32 подключенные к SD карте
@@ -35,8 +40,8 @@
   #define GREEN_PIN 16 //зеленый
   #define BLUE_PIN 17 //синий
 
-  //Флаг форматирования файловой системы при ошибке инициализации SPIFFS
-  #define FORMAT_SPIFFS_IF_FAILED true
+  //Флаг форматирования файловой системы при ошибке инициализации LittleFS
+  #define FORMAT_LITTLEFS_IF_FAILED true
 
   //Дополнительные символы в шрифте
   #define LV_SYMBOL_SUNRISE "\xEF\x82\xB3" //Восход
@@ -237,6 +242,8 @@
   //NTP инициализация
   GyverNTP ntp(3); //часовой пояс GMT+3
 
+  //Инициализация файл менеджера
+  ESPxWebFlMgr filemgr(8080); // 80 порт
   //Таймеры
   GTimer reftime(MS);//часы
   GTimer reflvgl(MS); //обновление экранов LVGL 
@@ -773,7 +780,7 @@
         for (uint8_t i=1;i<=un;i++)
           {
             Serial.println(i);
-            String tempurl=playlistread(SPIFFS,"/playlist.txt",i);
+            String tempurl=playlistread(LittleFS,"/playlist.txt",i);
             if (tempurl!="Failed to open file for reading")
               {
             char radio_url[100], radio_sta[50];
@@ -1758,10 +1765,10 @@ void setup()
       tft.setRotation(1);
  
   //Инициализация файловой системы
-  if(!SPIFFS.begin(FORMAT_SPIFFS_IF_FAILED)){
-        Serial.println("SPIFFS Mount Failed");
-        Serial.println("Formatting SPIFFS...");
-        bool formatted = SPIFFS.format();
+  if(!LittleFS.begin(FORMAT_LITTLEFS_IF_FAILED)){
+        Serial.println("LittleFS Mount Failed");
+        Serial.println("Formatting LittleFS...");
+        bool formatted = LittleFS.format();
         if(formatted){
         Serial.println("\n\nSuccess formatting");
         }else{
@@ -1771,17 +1778,17 @@ void setup()
     }
     else 
       {
-        Serial.println("SPIFFS ready!");
+        Serial.println("LittleFS ready!");
         Serial.println("Reading config file...");
         loadConfiguration(filename);
         loadRadioConf("/radioconf.txt");
-        listDir(SPIFFS, "/", 0);
+        listDir(LittleFS, "/", 0);
         Serial.println("Loading playlist info...");
-        un=playlistnumtrack(SPIFFS,"/playlist.txt");
+        un=playlistnumtrack(LittleFS,"/playlist.txt");
         if (un>0) 
           {
             Serial.printf("Found %d stations \n",un);
-            url=playlistread(SPIFFS,"/playlist.txt",sn);
+            url=playlistread(LittleFS,"/playlist.txt",sn);
             Serial.printf("Current track: %s \n",url);
           }
           else
@@ -1831,7 +1838,7 @@ void setup()
     {
       sdLoadConf(SD, "/playlist.txt", "/playlist.txt");
       SD.remove("/playlist.txt");
-      listDir(SPIFFS, "/", 0);}
+      listDir(LittleFS, "/", 0);}
   SD.end();
       }        
       
@@ -1872,6 +1879,10 @@ Serial.println(ntp.status());
 numtries--;
  }
  //ntp.setHost(ntpserver);
+//Запускаем Web интерфейс и файловый менеджер
+ setupWebserver();
+ filemgr.begin();
+
 Serial.println("calendar start");
 //Устанавливаем календарям актуальные данные
 set_calendars_date();
@@ -2289,7 +2300,9 @@ void loop()
 {
   static int lastms = 0;
   ntp.tick();//внутренний таймер NTP сервиса
-  audio.loop();
+  audio.loop(); //аудио 
+  filemgr.handleClient(); //файловый сервер
+  loopWebServer(); //Web сервер
   //далее проверяем таймеры на срабатывание
     
     if (reflvgl.isReady())

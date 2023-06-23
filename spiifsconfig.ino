@@ -1,6 +1,6 @@
 void loadConfiguration(const char *filename) {
   // Open file for reading
-  File file = SPIFFS.open(filename);
+  File file = LittleFS.open(filename);
   if(!file){
         Serial.println("Failed to open file");
         return;
@@ -45,10 +45,10 @@ void loadConfiguration(const char *filename) {
 // сохраняем настройки в файл
 void saveConfiguration(const char *filename) {
   // Delete existing file, otherwise the configuration is appended to the file
-  SPIFFS.remove(filename);
+  LittleFS.remove(filename);
 
   // Открываем файл для чтения
-  File file = SPIFFS.open(filename, FILE_WRITE);
+  File file = LittleFS.open(filename, FILE_WRITE);
   if (!file) {
     Serial.println(F("Failed to create file"));
     return;
@@ -118,9 +118,9 @@ uint8_t playlistnumtrack(fs::FS &fs, const char * path) {
 
 //сохранение конфигурации радио
 void saveRadioConf(const char *filename) {
-  SPIFFS.remove(filename);
+  LittleFS.remove(filename);
   // Открываем файл для чтения
-  File file = SPIFFS.open(filename, FILE_WRITE);
+  File file = LittleFS.open(filename, FILE_WRITE);
   if (!file) {
     Serial.println(F("Failed to create file"));
     return;
@@ -145,7 +145,7 @@ void saveRadioConf(const char *filename) {
 //Загрузка конфигурации радио
 void loadRadioConf(const char *filename) {
   // Открываем файл для чтения
-  File file = SPIFFS.open(filename);
+  File file = LittleFS.open(filename);
   if(!file){
         Serial.println("Failed to open file");
         return;
