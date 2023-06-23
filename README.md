@@ -1,5 +1,6 @@
 # Мультиинформер
 [![Лого](https://github.com/altJSV/multiinformer/blob/main/additional_info/logo.png "Лого")](https://github.com/altJSV/multiinformer/blob/main/additional_info/logo.png "Лого")
+
 Проект универсального мультинформера на базе ESP32
 ## Основные возможности
 - Отображение календаря с актуальными праздниками
