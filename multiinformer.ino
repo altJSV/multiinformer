@@ -243,7 +243,7 @@
   GyverNTP ntp(3); //часовой пояс GMT+3
 
   //Инициализация файл менеджера
-  ESPxWebFlMgr filemgr(8080); // 80 порт
+  ESPxWebFlMgr filemgr(80); // 80 порт
   //Таймеры
   GTimer reftime(MS);//часы
   GTimer reflvgl(MS); //обновление экранов LVGL 
@@ -1524,10 +1524,10 @@ Serial.println("3 screen");
   
     lv_obj_t  * ui_label_ntp_gmt = lv_label_create(settingspanel2); //создаем объект заголовок
     lv_label_set_text(ui_label_ntp_gmt, "Часовой пояс:"); //сам текст для надписи
-    lv_obj_align(ui_label_ntp_gmt, LV_ALIGN_TOP_LEFT, 0, 0); 
+    lv_obj_align(ui_label_ntp_gmt, LV_ALIGN_TOP_LEFT, 0, 20); 
 
     lv_obj_t * slider_gmt = lv_slider_create(settingspanel2);
-    lv_obj_align(slider_gmt, LV_ALIGN_TOP_LEFT, 0, 30);
+    lv_obj_align(slider_gmt, LV_ALIGN_TOP_LEFT, 0, 50);
     lv_obj_set_width(slider_gmt,295);
     lv_slider_set_range(slider_gmt, -12 , 14);
     lv_slider_set_value(slider_gmt, gmt, LV_ANIM_OFF);
@@ -1962,7 +1962,7 @@ audio.setVolume(vol);
   lv_calendar_set_today_date(calendar, ntp.year(), ntp.month(), ntp.day());
   lv_calendar_set_showed_date(calendar, ntp.year(), ntp.month());
   lastday=ntp.day(); //присваиваем переменной lastday значение текущего дня
-    static lv_calendar_date_t highlighted_days[49]; //массив дат праздников
+    static lv_calendar_date_t highlighted_days[61]; //массив дат праздников
 
     //Новый год
     highlighted_days[0].year = ntp.year();
@@ -1984,6 +1984,7 @@ audio.setVolume(vol);
     highlighted_days[4].year = ntp.year();
     highlighted_days[4].month = 01;
     highlighted_days[4].day = 5;
+    
     //Православный сочельник
     highlighted_days[5].year = ntp.year();
     highlighted_days[5].month = 01;
@@ -1993,229 +1994,293 @@ audio.setVolume(vol);
     highlighted_days[6].year = ntp.year();
     highlighted_days[6].month = 01;
     highlighted_days[6].day = 7;
-    
-    //День Генерального прокурора
+
+    //Крещение Господне
     highlighted_days[7].year = ntp.year();
     highlighted_days[7].month = 01;
-    highlighted_days[7].day = 12;
+    highlighted_days[7].day = 19;
     
-    //Старый новый год
+    //День Генерального прокурора
     highlighted_days[8].year = ntp.year();
     highlighted_days[8].month = 01;
-    highlighted_days[8].day = 14;
+    highlighted_days[8].day = 12;
     
-    //Татьянин день
+    //Старый новый год
     highlighted_days[9].year = ntp.year();
     highlighted_days[9].month = 01;
-    highlighted_days[9].day = 25;
+    highlighted_days[9].day = 14;
     
-    //День Святого Валентина
+    //Татьянин день
     highlighted_days[10].year = ntp.year();
-    highlighted_days[10].month = 02;
-    highlighted_days[10].day = 14;
+    highlighted_days[10].month = 01;
+    highlighted_days[10].day = 25;
 
-    //День памяти о международных обязанностях
+    //Международный день ювелира
     highlighted_days[11].year = ntp.year();
-    highlighted_days[11].month = 02;
-    highlighted_days[11].day = 15;
+    highlighted_days[11].month = 01;
+    highlighted_days[11].day = 31;
     
-    //День защитника отечества
+    //день сурка
     highlighted_days[12].year = ntp.year();
     highlighted_days[12].month = 02;
-    highlighted_days[12].day = 23;
+    highlighted_days[12].day = 2;
 
-    //День сил специальных операций
+    //день российской науки
     highlighted_days[13].year = ntp.year();
     highlighted_days[13].month = 02;
-    highlighted_days[13].day = 27;
+    highlighted_days[13].day = 8;
+
+    //Всемирный день радио
+    highlighted_days[14].year = ntp.year();
+    highlighted_days[14].month = 02;
+    highlighted_days[14].day = 13;
+
+    //День Святого Валентина
+    highlighted_days[15].year = ntp.year();
+    highlighted_days[15].month = 02;
+    highlighted_days[15].day = 14;
+
+    //День памяти о международных обязанностях
+    highlighted_days[16].year = ntp.year();
+    highlighted_days[16].month = 02;
+    highlighted_days[16].day = 15;
+    
+    //День защитника отечества
+    highlighted_days[17].year = ntp.year();
+    highlighted_days[17].month = 02;
+    highlighted_days[17].day = 23;
+
+    //День сил специальных операций
+    highlighted_days[18].year = ntp.year();
+    highlighted_days[18].month = 02;
+    highlighted_days[18].day = 27;
     
     //Международный женский день
-    highlighted_days[14].year = ntp.year();
-    highlighted_days[14].month = 03;
-    highlighted_days[14].day = 8;
+    highlighted_days[19].year = ntp.year();
+    highlighted_days[19].month = 03;
+    highlighted_days[19].day = 8;
     
     //Мартовское равноденствие
-    highlighted_days[15].year = ntp.year();
-    highlighted_days[15].month = 03;
-    highlighted_days[15].day = 20;
+    highlighted_days[20].year = ntp.year();
+    highlighted_days[20].month = 03;
+    highlighted_days[20].day = 20;
     
     //День работников культуры
-    highlighted_days[16].year = ntp.year();
-    highlighted_days[16].month = 03;
-    highlighted_days[16].day = 25;
-    
-    //Национальный день донора
-    highlighted_days[17].year = ntp.year();
-    highlighted_days[17].month = 04;
-    highlighted_days[17].day = 22;
-    
-
-    //День памяти о радиационных авариях и катастрофах
-    highlighted_days[18].year = ntp.year();
-    highlighted_days[18].month = 04;
-    highlighted_days[18].day = 26;
-    
-    //День весны и труда
-    highlighted_days[19].year = ntp.year();
-    highlighted_days[19].month = 05;
-    highlighted_days[19].day = 1;
-
-    //День Победы
-    highlighted_days[20].year = ntp.year();
-    highlighted_days[20].month = 05;
-    highlighted_days[20].day = 9;
-
-    //День пограничника
     highlighted_days[21].year = ntp.year();
-    highlighted_days[21].month = 05;
-    highlighted_days[21].day = 28;
+    highlighted_days[21].month = 03;
+    highlighted_days[21].day = 25;
     
-    //День защиты детей
+    //День смеха
     highlighted_days[22].year = ntp.year();
-    highlighted_days[22].month = 06;
+    highlighted_days[22].month = 04;
     highlighted_days[22].day = 1;
 
-    //День русского языка
+    //Национальный день донора
     highlighted_days[23].year = ntp.year();
-    highlighted_days[23].month = 06;
-    highlighted_days[23].day = 6;
+    highlighted_days[23].month = 04;
+    highlighted_days[23].day = 22;
+    
+    //День памяти о радиационных авариях и катастрофах
+    highlighted_days[24].year = ntp.year();
+    highlighted_days[24].month = 04;
+    highlighted_days[24].day = 26;
+    
+    //День весны и труда
+    highlighted_days[25].year = ntp.year();
+    highlighted_days[25].month = 05;
+    highlighted_days[25].day = 1;
+
+    //День Победы
+    highlighted_days[26].year = ntp.year();
+    highlighted_days[26].month = 05;
+    highlighted_days[26].day = 9;
+
+    //Международный день семьи
+    highlighted_days[27].year = ntp.year();
+    highlighted_days[27].month = 05;
+    highlighted_days[27].day = 15;
+
+    //День пограничника
+    highlighted_days[28].year = ntp.year();
+    highlighted_days[28].month = 05;
+    highlighted_days[28].day = 28;
+    
+    //День защиты детей
+    highlighted_days[29].year = ntp.year();
+    highlighted_days[29].month = 06;
+    highlighted_days[29].day = 1;
+
+    //День русского языка
+    highlighted_days[30].year = ntp.year();
+    highlighted_days[30].month = 06;
+    highlighted_days[30].day = 6;
 
     //День социальных работников
-    highlighted_days[24].year = ntp.year();
-    highlighted_days[24].month = 06;
-    highlighted_days[24].day = 8;
+    highlighted_days[31].year = ntp.year();
+    highlighted_days[31].month = 06;
+    highlighted_days[31].day = 8;
     
     //День России
-    highlighted_days[25].year = ntp.year();
-    highlighted_days[25].month = 06;
-    highlighted_days[25].day = 12;
+    highlighted_days[32].year = ntp.year();
+    highlighted_days[32].month = 06;
+    highlighted_days[32].day = 12;
 
     //Всемирный день Донора
-    highlighted_days[26].year = ntp.year();
-    highlighted_days[26].month = 06;
-    highlighted_days[26].day = 14;
+    highlighted_days[33].year = ntp.year();
+    highlighted_days[33].month = 06;
+    highlighted_days[33].day = 14;
     
     //Июньское солнцестояние
-    highlighted_days[27].year = ntp.year();
-    highlighted_days[27].month = 06;
-    highlighted_days[27].day = 21;
+    highlighted_days[34].year = ntp.year();
+    highlighted_days[34].month = 06;
+    highlighted_days[34].day = 21;
     
+    //День рыбака
+    highlighted_days[35].year = ntp.year();
+    highlighted_days[35].month = 07;
+    highlighted_days[35].day = 13;
+
     //День военно-морского флота
-    highlighted_days[28].year = ntp.year();
-    highlighted_days[28].month = 07;
-    highlighted_days[28].day = 30;
+    highlighted_days[36].year = ntp.year();
+    highlighted_days[36].month = 07;
+    highlighted_days[36].day = 30;
 
     //День ВДВ
-    highlighted_days[29].year = ntp.year();
-    highlighted_days[29].month = 8;
-    highlighted_days[29].day = 2;
+    highlighted_days[37].year = ntp.year();
+    highlighted_days[37].month = 8;
+    highlighted_days[37].day = 2;
 
     //День железнодорожника
-    highlighted_days[30].year = ntp.year();
-    highlighted_days[30].month = 8;
-    highlighted_days[30].day = 25;
+    highlighted_days[38].year = ntp.year();
+    highlighted_days[38].month = 8;
+    highlighted_days[38].day = 25;
     
     //День ВВС
-    highlighted_days[31].year = ntp.year();
-    highlighted_days[31].month = 8;
-    highlighted_days[31].day = 12;
+    highlighted_days[39].year = ntp.year();
+    highlighted_days[39].month = 8;
+    highlighted_days[39].day = 12;
 
     //День Государственного флага
-    highlighted_days[32].year = ntp.year();
-    highlighted_days[32].month = 8;
-    highlighted_days[32].day = 22;
+    highlighted_days[40].year = ntp.year();
+    highlighted_days[40].month = 8;
+    highlighted_days[40].day = 22;
 
     //День фильмов и кино
-    highlighted_days[33].year = ntp.year();
-    highlighted_days[33].month = 8;
-    highlighted_days[33].day = 27;
+    highlighted_days[41].year = ntp.year();
+    highlighted_days[41].month = 8;
+    highlighted_days[41].day = 27;
     
     //День знаний
-    highlighted_days[34].year = ntp.year();
-    highlighted_days[34].month = 9;
-    highlighted_days[34].day = 1;
+    highlighted_days[42].year = ntp.year();
+    highlighted_days[42].month = 9;
+    highlighted_days[42].day = 1;
+
+    //День окончания второй мировой войны
+    highlighted_days[43].year = ntp.year();
+    highlighted_days[43].month = 9;
+    highlighted_days[43].day = 2;
 
     //Сентябрьское равноденствие
-    highlighted_days[35].year = ntp.year();
-    highlighted_days[35].month = 9;
-    highlighted_days[35].day = 23;
+    highlighted_days[44].year = ntp.year();
+    highlighted_days[44].month = 9;
+    highlighted_days[44].day = 23;
     
-    //День машиностроителя
-    highlighted_days[36].year = ntp.year();
-    highlighted_days[36].month = 9;
-    highlighted_days[36].day = 29;
-    
-    //День воздушно-космической обороны России
-    highlighted_days[37].year = ntp.year();
-    highlighted_days[37].month = 10;
-    highlighted_days[37].day = 4;
-    
-    //День спецназа
-    highlighted_days[38].year = ntp.year();
-    highlighted_days[38].month = 10;
-    highlighted_days[38].day = 24;
+     //День воспитателя и всех дошкольных работников
+    highlighted_days[45].year = ntp.year();
+    highlighted_days[45].month = 9;
+    highlighted_days[45].day = 27;
+   
+    //День пожилого человека
+    highlighted_days[46].year = ntp.year();
+    highlighted_days[46].month = 10;
+    highlighted_days[46].day = 1;
 
+    //День МЧС
+    highlighted_days[47].year = ntp.year();
+    highlighted_days[47].month = 10;
+    highlighted_days[47].day = 4;
+    
+    //Всемирный день учителей
+    highlighted_days[48].year = ntp.year();
+    highlighted_days[48].month = 10;
+    highlighted_days[48].day = 5;
+
+    //Международный день повара
+    highlighted_days[49].year = ntp.year();
+    highlighted_days[49].month = 10;
+    highlighted_days[49].day = 20;
+    
     //День таможенника
-    highlighted_days[39].year = ntp.year();
-    highlighted_days[39].month = 10;
-    highlighted_days[39].day = 25;
+    highlighted_days[50].year = ntp.year();
+    highlighted_days[50].month = 10;
+    highlighted_days[50].day = 25;
+
+    //Хэллоуин
+    highlighted_days[51].year = ntp.year();
+    highlighted_days[51].month = 10;
+    highlighted_days[51].day = 31;
 
     //День народного единства
-    highlighted_days[40].year = ntp.year();
-    highlighted_days[40].month = 11;
-    highlighted_days[40].day = 4;
+    highlighted_days[52].year = ntp.year();
+    highlighted_days[52].month = 11;
+    highlighted_days[52].day = 4;
     
     //День полиции
-    highlighted_days[41].year = ntp.year();
-    highlighted_days[41].month = 11;
-    highlighted_days[41].day = 10;
+    highlighted_days[53].year = ntp.year();
+    highlighted_days[53].month = 11;
+    highlighted_days[53].day = 10;
 
-    //День ракетных войск и артиллерии
-    highlighted_days[42].year = ntp.year();
-    highlighted_days[42].month = 11;
-    highlighted_days[42].day = 18;
+    //Всероссийский день призывника
+    highlighted_days[54].year = ntp.year();
+    highlighted_days[54].month = 11;
+    highlighted_days[54].day = 15;
 
     //День матери
-    highlighted_days[43].year = ntp.year();
-    highlighted_days[43].month = 11;
-    highlighted_days[43].day = 26;
+    highlighted_days[55].year = ntp.year();
+    highlighted_days[55].month = 11;
+    highlighted_days[55].day = 26;
     
     //День морской пехоты
-    highlighted_days[44].year = ntp.year();
-    highlighted_days[44].month = 11;
-    highlighted_days[44].day = 27;
+    highlighted_days[56].year = ntp.year();
+    highlighted_days[56].month = 11;
+    highlighted_days[56].day = 27;
 
     //День героев Отечества
-    highlighted_days[45].year = ntp.year();
-    highlighted_days[45].month = 12;
-    highlighted_days[45].day = 9;
+    highlighted_days[57].year = ntp.year();
+    highlighted_days[57].month = 12;
+    highlighted_days[57].day = 9;
     
     //День стратегических ракетных войск
-    highlighted_days[46].year = ntp.year();
-    highlighted_days[46].month = 12;
-    highlighted_days[46].day = 17;
+    highlighted_days[58].year = ntp.year();
+    highlighted_days[58].month = 12;
+    highlighted_days[58].day = 17;
     
     //Декабрьское солнцестояние
-    highlighted_days[47].year = ntp.year();
-    highlighted_days[47].month = 12;
-    highlighted_days[47].day = 22;
+    highlighted_days[59].year = ntp.year();
+    highlighted_days[59].month = 12;
+    highlighted_days[59].day = 22;
     
     //Канун нового года
-    highlighted_days[48].year = ntp.year();
-    highlighted_days[48].month = 12;
-    highlighted_days[48].day = 31;
+    highlighted_days[60].year = ntp.year();
+    highlighted_days[60].month = 12;
+    highlighted_days[60].day = 31;
 
   //Массив праздников
-  char *celeb[49]={"Новый год",
+  char *celeb[61]={"Новый год",
   "Второй день Нового года",
   "Третий день Нового года",
   "Четвертый день Нового года",
   "Пятый день Нового года",
   "Православный сочельник",
   "Православное рождество",
+  "Крещение Господне",
   "День Генерального прокурора",
   "Старый Новый год",
   "Татьянин день",
+  "Международный день ювелира",
+  "День сурка",
+  "День российской науки",
+  "Всемирный день радио",
   "День святого Валентина",
   "День памяти о международных обязанностях",
   "День защитника отечества",
@@ -2223,10 +2288,12 @@ audio.setVolume(vol);
   "Международный женский день",
   "Мартовское равноденствие",
   "День работников культуры",
+  "День смеха",
   "Национальный день донора крови",
   "День памяти о радиационных авариях и катастрофах",
   "День весны и труда",
   "День Победы",
+  "Международный день семьи",
   "День пограничника",
   "День защиты детей",
   "День русского языка",
@@ -2234,21 +2301,26 @@ audio.setVolume(vol);
   "День России",
   "Всемирный день донора крови",
   "Июньское солнцестояние",
+  "День рыбака",
   "День военно-морского флота",
   "День ВДВ",
-  "День работников железнодорожника",
-  "День спорта",
+  "День работников железнодорожного транспорта",
   "День военно-воздушных сил России",
   "День государсвенного флага",
   "День фильмов и кино",
+  "День знаний",
+  "День окончания Второй мировой войны",
   "Сентябрьское равноденствие",
-  "День машиностроителя",
-  "День воздушно-космической обороны России",
-  "День спецназа",
+  "День воспитателя и всех дошкольных работников",
+  "День пожилого человека",
+  "День МЧС",
+  "Всемирный день учителей",
+  "Международный день повара",
   "День таможенника",
+  "Хэллоуин",
   "День народного единства",
   "День полиции",
-  "День ракетных войск и артиллерии",
+  "Всероссийский день призывника",
   "День матери",
   "День морской пехоты",
   "День героев Отечества",
