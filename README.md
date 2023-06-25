@@ -181,3 +181,40 @@ url\_адрес\_потока\*Отображаемое\_имя\_станции
 
 ##### Добавление списка радиостанций через Файловый менеджер
 Также playlist.txt можно переместить и редактировать прямо на устройстве с помощью встроенного файлового менеджера. Для этого введите в адресной строке браузера компьютера или смартфона IP адрес устройства и с помощью открывшегося файлового менеджера переместите  playlist.txt во внутреннюю память устройства, либо отредактируйте его прямо в браузере.
+
+### Экран настроек
+На данном экране представлены различные настройки устройства разделенные на 6 категорий:
+- Основные
+- Монитор ПК
+- Погода
+- Датчик BME
+- SD карта
+Переключение  категорий настроек осуществляется свайпами вверх и вниз, а также тапами по имени категории в левой части экрана. Сохранение настроек производится автоматически при закрытии панели настроек.
+
+#### Основные
+[![Основные настройки](https://github.com/altJSV/multiinformer/blob/main/additional_info/main_settings.png "Основные настройки")](https://github.com/altJSV/multiinformer/blob/main/additional_info/main_settings.png "Основные настройки")
+Здесь производится настройка яркости подсветки экрана, а также включение и отключение автоматической регулировки яркости подсветки в зависимости от внешнего освещения.
+Также здесь можно изменть время работы RGB индикатора раздичных состояний устройства, например для его отключения в ночное время, а также отключить его совсем. 
+Также на данном экране настроек можно установить часовой пояс для отображаемого времени на экране.
+
+#### WiFi
+[![Настройки WiFi](https://github.com/altJSV/multiinformer/blob/main/additional_info/wifi_settings1.png "Настройки WiFi")](https://github.com/altJSV/multiinformer/blob/main/additional_info/wifi_settings1.png "Настройки WiFi")
+На данном экране вы можете ввести учетные данные для подключения по WiFi к вашей точке доступа, а также просмотреть информацию об активном WiFi подкючении.
+[![Информация о WiFi](https://github.com/altJSV/multiinformer/blob/main/additional_info/wif_settings2.png "Информация о WiFi")](https://github.com/altJSV/multiinformer/blob/main/additional_info/wif_settings2.png "Информация о WiFi")
+
+#### Монитор ПК
+[![Монитор ПК](https://github.com/altJSV/multiinformer/blob/main/additional_info/pc_settings.png "Монитор ПК")](https://github.com/altJSV/multiinformer/blob/main/additional_info/pc_settings.png "Монитор ПК")
+На данном экране вы можете указать адрес веб сервера Libre Hardware Monitor для чтения информации о параметрах ПК, а также изменить интервал опроса датчиков.
+
+#### Погода
+[![Настройки погоды](https://github.com/altJSV/multiinformer/blob/main/additional_info/weather_settings.png "Настройки погоды")](https://github.com/altJSV/multiinformer/blob/main/additional_info/weather_settings.png "Настройки погоды")
+На данном экране вы может настроить параметры подключения к погодному серверу Open Weather Maps. С помощью экранной клавиатуры вы можете ввести ваш API ключ для доступа к сервису, а также город и код страны для которого будт отображаться погода.
+С помощью слайдера вы можете установить временной интервал обновления данных о погоде.
+
+#### Датчик BME
+[![Настройки BME](https://github.com/altJSV/multiinformer/blob/main/additional_info/bme_settings.png "Настройки BME")](https://github.com/altJSV/multiinformer/blob/main/additional_info/bme_settings.png "Настройки BME")
+На данной вкладке настроек вы можете включить использование датчика BME680, для отображения различных параметров микроклимата в помещении на главном экране. Также вы можете с помощью слайдера изменить интервал опроса датчика.
+
+#### SD карта
+[![Настройки SD](https://github.com/altJSV/multiinformer/blob/main/additional_info/sd_settings.png "Настройки SD")](https://github.com/altJSV/multiinformer/blob/main/additional_info/sd_settings.png "Настройки SD")
+На этом экране вы можете импортировать/экспортировать файл настроек устройства, а также плейлист радиостанций с (на) SD карты(у) во(из) внутреннюю(ей) память(и) мультиинформера.
