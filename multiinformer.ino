@@ -88,7 +88,8 @@
   bool photosensor = false; //использовать фоторезистор
   bool usesensor = false; //Использовать датчик температуры
   //uint8_t sensortype = 1; //тип датчика 0 - bmp280, 1 - bme280, 2 - bme680, 
-  bool ledindicator = true; //Включение или отключение rgb светодиода 
+  bool ledindicator = true; //Включение или отключение rgb светодиода
+  bool darktheme = true; //Включение или отключение rgb светодиода  
   uint8_t daybegin=8, dayend=21;
 //Переменные конфигурации дисплея
   static const uint16_t screenWidth  = 480; //ширина экрана
@@ -569,7 +570,23 @@
         }
     
   saveconf=true;  
-  }  
+  }
+
+  //Перключение темы
+  static void darktheme_switch_event(lv_event_t * e)
+  {
+    lv_obj_t * obj = lv_event_get_target(e);
+        if (lv_obj_has_state(obj, LV_STATE_CHECKED)) 
+        {
+          darktheme=true;
+        }
+        else
+        {
+          darktheme=false;
+        }
+  lv_theme_default_init(NULL, lv_palette_main(LV_PALETTE_BLUE), lv_palette_main(LV_PALETTE_CYAN), darktheme, &fira);  
+  saveconf=true;  
+  }    
 
 //Изменение цветого оформления таблицы вылют
   static void draw_table_part_event_cb(lv_event_t * e)
@@ -1436,7 +1453,7 @@ Serial.println("3 screen");
 //1 вкладка настроек Основные
     //Настройки дисплея
     lv_obj_t * settingspanel1 = lv_obj_create(settab1);
-    lv_obj_set_size(settingspanel1, 335,185);
+    lv_obj_set_size(settingspanel1, 335,215);
     lv_obj_t  * ui_label_set_cat_display = lv_label_create(settingspanel1); //создаем объект заголовок
     lv_label_set_text(ui_label_set_cat_display, "Дисплей"); //сам текст для надписи
     lv_obj_align(ui_label_set_cat_display, LV_ALIGN_TOP_MID, 0, 0); //положение на экране  
@@ -1510,10 +1527,28 @@ Serial.println("3 screen");
     lv_label_set_text_fmt(slider_daytime_label, "%d - %d", daybegin, dayend);
     lv_obj_align_to(slider_daytime_label, ui_slider_day_time, LV_ALIGN_CENTER, 0, 0);
 
+    //Переключение темы
+    lv_obj_t  * ui_label_dark_theme = lv_label_create(settingspanel1); //создаем объект заголовок
+    lv_label_set_text(ui_label_dark_theme, "Тёмная тема"); //сам текст для надписи
+    lv_obj_align(ui_label_dark_theme, LV_ALIGN_TOP_LEFT, 0, 170); //положение на экране
+    //Переключатель светлой и тёмной темы
+    lv_obj_t * darktheme_switch = lv_switch_create(settingspanel1);
+    lv_obj_add_event_cb(darktheme_switch, darktheme_switch_event, LV_EVENT_VALUE_CHANGED, NULL);
+    lv_obj_align(darktheme_switch, LV_ALIGN_TOP_RIGHT, 0, 170); //положение на экране
+    lv_obj_set_size(darktheme_switch,32,16);
+    if (darktheme)
+    {
+      lv_obj_add_state(darktheme_switch, LV_STATE_CHECKED); 
+    }
+    else
+    {
+      lv_obj_clear_state(darktheme_switch, LV_STATE_CHECKED);
+    }
+
     //Настройки NTP
     lv_obj_t * settingspanel2 = lv_obj_create(settab1);
     lv_obj_set_size(settingspanel2, 335,LV_SIZE_CONTENT);
-    lv_obj_set_pos(settingspanel2, 0, 185);
+    lv_obj_set_pos(settingspanel2, 0, 225);
     lv_obj_t  * ui_label_set_cat_time = lv_label_create(settingspanel2); //создаем объект заголовок
     lv_label_set_text(ui_label_set_cat_time, "NTP"); //сам текст для надписи
     lv_obj_align(ui_label_set_cat_time, LV_ALIGN_TOP_MID, 0, 0); //положение на экране
@@ -1943,7 +1978,7 @@ Serial.println("photo start");
   pinMode(PHOTO_PIN, ANALOG);
 //Настройка параметров аудио
 audio.setVolume(vol);
-  
+lv_theme_default_init(NULL, lv_palette_main(LV_PALETTE_BLUE), lv_palette_main(LV_PALETTE_CYAN), darktheme, &fira);   
 }
 
 

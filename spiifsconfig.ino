@@ -34,6 +34,7 @@ void loadConfiguration(const char *filename) {
   photosensor= (bool)doc1["photosensor"];
   pc_server_path = jspc_server_path;
   ledindicator = (bool)doc1["ledindicator"];
+  darktheme = (bool)doc1["darktheme"] | true;
   api_key = jsapi_key;
   qLocation  = jsqLocation;
   SSID=jsSSID;
@@ -65,6 +66,7 @@ void saveConfiguration(const char *filename) {
   doc1["refweatherinterval"] = refweatherinterval;//период обновления погоды
   doc1["gmt"] = gmt; //часовой пояс
   doc1["ledindicator"] = ledindicator;//состояние led индикатора
+  doc1["darktheme"] = darktheme;//темная тема
   doc1["day_begin"] = daybegin;//начало дневного времени
   doc1["day_end"] = dayend;//конец дневного времени
   doc1["usesensor"] = usesensor; //использование сенсора bme
