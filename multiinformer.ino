@@ -951,6 +951,7 @@ void lvlg_create()
     lv_style_set_bg_opa(&style_indic, LV_OPA_COVER);
     lv_style_set_bg_color(&style_indic, lv_palette_main(LV_PALETTE_GREEN));
     lv_style_set_bg_grad_color(&style_indic, lv_palette_main(LV_PALETTE_RED));
+    lv_style_set_bg_grad_dir(&style_indic, LV_GRAD_DIR_HOR);
 
   tabview = lv_tabview_create(lv_scr_act(), LV_DIR_BOTTOM, 20); //создаем интерфейс вкладок
     //Создаем вкладки и присваиваем им отображаемые имена
