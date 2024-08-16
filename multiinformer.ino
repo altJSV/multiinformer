@@ -14,6 +14,7 @@
   #include <WiFi.h>//wifi функции
   #include <WiFiClient.h>//для связи по протоколу https
   #include <HTTPClient.h>//отправка http запросов
+  #include <PubSubClient.h> //работа по протоколу mqtt
   #include <Adafruit_Sensor.h>//универсальная библиотека для работы с различными сенсорами
   #include "Adafruit_BME680.h"//библиотека для работы с датчиком BME680
   #include "Audio.h" //ESP32 Audio I2S от ESPHome
@@ -21,7 +22,6 @@
   #include <WebServer.h> //Библиотека Web сервера
   // getting access to the nice mime-type-table and getContentType()
   #include <detail/RequestHandlersImpl.h>
-
   #include <ESPxWebFlMgr.h> //файловый менеджер
 
 //Определяем различные параметры устройств
@@ -239,7 +239,8 @@
 //Инициализации библиотек и переферии
   //инициализация библиотеки TFT_eSPI
   TFT_eSPI tft = TFT_eSPI();  
-    
+  WiFiClient esp32Client; //обмен данными по wifi
+  PubSubClient client(esp32Client); //инициализируем библиотеку mqtt  
   //NTP инициализация
   GyverNTP ntp(3); //часовой пояс GMT+3
 
@@ -2376,7 +2377,7 @@ lv_theme_default_init(NULL, lv_palette_main(LV_PALETTE_BLUE), lv_palette_main(LV
               }
             }
   
-    
+Serial.println("Done");    
 }
 
 //События WiFi
@@ -2394,6 +2395,7 @@ void WiFiGotIP(WiFiEvent_t event, WiFiEventInfo_t info){
   lv_label_set_text_fmt(wifistatus, "%s "LV_SYMBOL_WIFI, ipString.c_str());
   Serial.println("IP address: ");
   Serial.println(ip);
+  MQTT_init();
 }
 
 void WiFiStationDisconnected(WiFiEvent_t event, WiFiEventInfo_t info){
@@ -2440,6 +2442,14 @@ void loop()
   lv_label_set_text_fmt(roomhumid, LV_SYMBOL_HUMIDITY"%.1f%",bme.humidity);
   lv_label_set_text_fmt(roompress,LV_SYMBOL_PRESSURE"%dмм рт. ст.",bme.pressure/133,3);
   int airquality=bme.gas_resistance / 1000;
+  String stemp=String((bme.temperature));
+  String shumid=String((bme.humidity));
+  String spress=String((bme.pressure/133,3));
+  String sair=String((airquality));
+  client.publish(tempTopic.c_str(),stemp.c_str());
+  client.publish(humidTopic.c_str(),shumid.c_str());
+  client.publish(pressureTopic.c_str(),spress.c_str());
+  client.publish(airTopic.c_str(),sair.c_str());
   if (airquality<51) {lv_label_set_text_fmt(roomair,"Качество воздуха: Хорошее",airquality);if (ledindicator && ntp.hour()>=daybegin && ntp.hour()<=dayend){ledcWrite(1, 255);ledcWrite(2, 128);ledcWrite(3, 255);}}
   if (airquality>50 && airquality<101) {lv_label_set_text_fmt(roomair,"Качество воздуха: Среднее",airquality);if (ledindicator && ntp.hour()>=daybegin && ntp.hour()<=dayend){ledcWrite(1, 255);ledcWrite(2, 200);ledcWrite(3, 255);}} 
   if (airquality>100 && airquality<151) {lv_label_set_text_fmt(roomair,"Качество воздуха: Ниже среднего",airquality);if (ledindicator && ntp.hour()>=daybegin && ntp.hour()<=dayend){ledcWrite(1, 225);ledcWrite(2, 225);ledcWrite(3, 255);}} 

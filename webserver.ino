@@ -1,7 +1,7 @@
 // WARNING: This webserver has no access control. It servers everything from your ESP32 file system.
 // WARNING: This webserver has no access control. It servers everything from your ESP32 file system.
 WebServer * webserver = NULL;
-const word webserverServerPort = 80;
+const word webserverServerPort = 8080;
 const String webserverDefaultname = "/index.html";
 // WARNING: This webserver has no access control. It servers everything from your ESP32 file system.
 // WARNING: This webserver has no access control. It servers everything from your ESP32 file system.
