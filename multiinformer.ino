@@ -2444,7 +2444,7 @@ void loop()
   int airquality=bme.gas_resistance / 1000;
   String stemp=String((bme.temperature));
   String shumid=String((bme.humidity));
-  String spress=String((bme.pressure/133,3));
+  String spress=String((bme.pressure/133));
   String sair=String((airquality));
   client.publish(tempTopic.c_str(),stemp.c_str());
   client.publish(humidTopic.c_str(),shumid.c_str());
